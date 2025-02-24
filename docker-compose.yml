@@ -1,0 +1,14 @@
+name: chunk
+services:
+  devcontainer:
+    container_name: devcontainer
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ./:/workspace:rw
+    environment:
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
+    command: sleep infinity
+
