@@ -97,20 +97,26 @@ func runChunk(cmd *cobra.Command, args []string) error {
 }
 
 func processFile(path string) ([]chunker.Chunk, error) {
-	// Determine language if user hasn't forced one
+	// 0. Skip likely-binary files
+	if chunker.IsLikelyBinaryByExtension(path) {
+		log.Printf("Skipping binary file: %s\n", path)
+		return nil, nil
+	}
+
+	// 1. Determine language if user hasn't forced one
 	lang := forcedLang
 	if lang == "" {
 		lang = chunker.AutoDetectLanguage(path)
 		log.Printf("Detected language for %s: %s\n", path, lang)
 	}
 
+	// 2. Dispatch to chunkers
 	switch lang {
 	case "go":
 		return chunker.ChunkGoFile(path)
 	case "ts", "react":
 		return chunker.ChunkTypeScriptFile(path, lang)
 	default:
-		// fallback for unrecognized languages
 		return chunker.ChunkFallback(path, fallbackLines)
 	}
 }

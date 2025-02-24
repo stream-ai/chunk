@@ -43,14 +43,27 @@ async function main() {
   const chunks: Chunk[] = [];
 
   function visit(node: ts.Node) {
-    // Example: detect function declarations
+    // Function Declarations
     if (ts.isFunctionDeclaration(node) && node.name) {
       chunks.push(makeChunk(node, sourceFile, sourceText, filePath, "function_declaration"));
     }
-    // Additional logic for arrow functions, class components, etc.
-
+    // Arrow Functions or Function Expressions
+    if (ts.isVariableStatement(node)) {
+      for (const decl of node.declarationList.declarations) {
+        if (decl.initializer && ts.isArrowFunction(decl.initializer)) {
+          chunks.push(makeChunk(decl.initializer, sourceFile, sourceText, filePath, "arrow_function"));
+        }
+      }
+    }
+    // Class Declarations
+    if (ts.isClassDeclaration(node) && node.name) {
+      // If react mode, check for extends React.Component...
+      chunks.push(makeChunk(node, sourceFile, sourceText, filePath, "class_declaration"));
+    }
+  
     node.forEachChild(visit);
   }
+  
   visit(sourceFile);
 
   console.log(JSON.stringify(chunks, null, 2));

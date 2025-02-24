@@ -39,7 +39,7 @@ func getExtension(path string) string {
 	return filepath.Ext(path)
 }
 
-func isLikelyBinaryByExtension(filename string) bool {
+func IsLikelyBinaryByExtension(filename string) bool {
 	binaryExt := map[string]bool{
 		"":       true,
 		".dll":   true,
