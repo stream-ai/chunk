@@ -3,3 +3,4 @@
 .env
 chunk
 chunks.json
+out.json
