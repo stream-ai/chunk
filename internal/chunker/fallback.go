@@ -1,4 +1,3 @@
-// chunker/fallbackchunker.go
 package chunker
 
 import (
@@ -8,8 +7,8 @@ import (
 	"strings"
 )
 
-func ChunkFallback(filepath string, linesPerChunk int) ([]Chunk, error) {
-	f, err := os.Open(filepath)
+func ChunkFallback(filePath string, linesPerChunk int) ([]Chunk, error) {
+	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -18,21 +17,26 @@ func ChunkFallback(filepath string, linesPerChunk int) ([]Chunk, error) {
 	var chunks []Chunk
 	var currentLines []string
 	currentStartLine := 1
+
 	scanner := bufio.NewScanner(f)
 	lineCount := 0
 
 	for scanner.Scan() {
 		lineCount++
 		currentLines = append(currentLines, scanner.Text())
+
 		if len(currentLines) >= linesPerChunk {
-			chunkID := fmt.Sprintf("fallback_%d_%d", currentStartLine, lineCount)
+			code := strings.Join(currentLines, "\n")
+			hashedID := makeChunkID(filePath, code)
+			chunkID := fmt.Sprintf("fallback_%d_%d:%s", currentStartLine, lineCount, hashedID[:8])
+
 			chunks = append(chunks, Chunk{
-				FilePath:  filepath,
+				FilePath:  filePath,
 				ChunkID:   chunkID,
 				ChunkType: "fallback",
 				StartLine: currentStartLine,
 				EndLine:   lineCount,
-				Code:      strings.Join(currentLines, "\n"),
+				Code:      code,
 			})
 			currentStartLine = lineCount + 1
 			currentLines = nil
@@ -40,14 +44,17 @@ func ChunkFallback(filepath string, linesPerChunk int) ([]Chunk, error) {
 	}
 	// remainder
 	if len(currentLines) > 0 {
-		chunkID := fmt.Sprintf("fallback_%d_%d", currentStartLine, lineCount)
+		code := strings.Join(currentLines, "\n")
+		hashedID := makeChunkID(filePath, code)
+		chunkID := fmt.Sprintf("fallback_%d_%d:%s", currentStartLine, lineCount, hashedID[:8])
+
 		chunks = append(chunks, Chunk{
-			FilePath:  filepath,
+			FilePath:  filePath,
 			ChunkID:   chunkID,
 			ChunkType: "fallback",
 			StartLine: currentStartLine,
 			EndLine:   lineCount,
-			Code:      strings.Join(currentLines, "\n"),
+			Code:      code,
 		})
 	}
 

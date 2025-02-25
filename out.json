@@ -1,0 +1,570 @@
+[
+  {
+    "file": ".devcontainer/devcontainer.json",
+    "chunk_id": "fallback_1_41:1e4fe2ed",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 41,
+    "code": "{\n    \"name\": \"chunk\",\n    \"workspaceFolder\": \"/workspace\",\n    \"dockerComposeFile\": \"../docker-compose.yml\",\n    \n    \"service\": \"devcontainer\",\n    \"customizations\": {\n      \"vscode\": {\n        \"settings\": {\n          \"files.autoSave\": \"onFocusChange\",\n          \"go.lintTool\": \"golangci-lint\",\n          \"go.lintFlags\": [\n            \"--fast\"\n          ],\n          \"go.lintOnSave\": \"package\",\n          \"go.useLanguageServer\": true,\n          \"gopls\": {\n            \"formatting.gofumpt\": true\n          },\n          \"remote.localPortHost\": \"allInterfaces\"\n        },\n        \"extensions\": [\n          \"golang.go\",\n          \"ms-azuretools.vscode-docker\",\n          \"ms-vscode.aws-toolkit\",\n          \"AmazonWebServices.aws-toolkit-vscode\",\n          \"yzhang.markdown-all-in-one\",\n          \"usernamehw.errorlens\",\n          \"formulahendry.auto-rename-tag\",\n          \"esbenp.prettier-vscode\",\n          \"bradlc.vscode-tailwindcss\",\n          \"tabnine.tabnine-vscode\"\n        ]\n      }\n    },\n    \"mounts\": [\n      \"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind\",\n      \"source=${localEnv:HOME}/.aws,target=/home/vscode/.aws,type=bind,consistency=cached\",\n      \"source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached\"\n    ]\n  }"
+  },
+  {
+    "file": ".git/hooks/applypatch-msg.sample",
+    "chunk_id": "fallback_1_15:1c4ff4e6",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 15,
+    "code": "#!/bin/sh\n#\n# An example hook script to check the commit log message taken by\n# applypatch from an e-mail message.\n#\n# The hook should exit with non-zero status after issuing an\n# appropriate message if it wants to stop the commit.  The hook is\n# allowed to edit the commit message file.\n#\n# To enable this hook, rename this file to \"applypatch-msg\".\n\n. git-sh-setup\ncommitmsg=\"$(git rev-parse --git-path hooks/commit-msg)\"\ntest -x \"$commitmsg\" \u0026\u0026 exec \"$commitmsg\" ${1+\"$@\"}\n:"
+  },
+  {
+    "file": ".git/hooks/commit-msg.sample",
+    "chunk_id": "fallback_1_24:32b434ac",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 24,
+    "code": "#!/bin/sh\n#\n# An example hook script to check the commit log message.\n# Called by \"git commit\" with one argument, the name of the file\n# that has the commit message.  The hook should exit with non-zero\n# status after issuing an appropriate message if it wants to stop the\n# commit.  The hook is allowed to edit the commit message file.\n#\n# To enable this hook, rename this file to \"commit-msg\".\n\n# Uncomment the below to add a Signed-off-by line to the message.\n# Doing this in a hook is a bad idea in general, but the prepare-commit-msg\n# hook is more suited to it.\n#\n# SOB=$(git var GIT_AUTHOR_IDENT | sed -n 's/^\\(.*\u003e\\).*$/Signed-off-by: \\1/p')\n# grep -qs \"^$SOB\" \"$1\" || echo \"$SOB\" \u003e\u003e \"$1\"\n\n# This example catches duplicate Signed-off-by lines.\n\ntest \"\" = \"$(grep '^Signed-off-by: ' \"$1\" |\n\t sort | uniq -c | sed -e '/^[ \t]*1[ \t]/d')\" || {\n\techo \u003e\u00262 Duplicate Signed-off-by lines.\n\texit 1\n}"
+  },
+  {
+    "file": ".git/hooks/fsmonitor-watchman.sample",
+    "chunk_id": "fallback_1_174:ba11e020",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 174,
+    "code": "#!/usr/bin/perl\n\nuse strict;\nuse warnings;\nuse IPC::Open2;\n\n# An example hook script to integrate Watchman\n# (https://facebook.github.io/watchman/) with git to speed up detecting\n# new and modified files.\n#\n# The hook is passed a version (currently 2) and last update token\n# formatted as a string and outputs to stdout a new update token and\n# all files that have been modified since the update token. Paths must\n# be relative to the root of the working tree and separated by a single NUL.\n#\n# To enable this hook, rename this file to \"query-watchman\" and set\n# 'git config core.fsmonitor .git/hooks/query-watchman'\n#\nmy ($version, $last_update_token) = @ARGV;\n\n# Uncomment for debugging\n# print STDERR \"$0 $version $last_update_token\\n\";\n\n# Check the hook interface version\nif ($version ne 2) {\n\tdie \"Unsupported query-fsmonitor hook version '$version'.\\n\" .\n\t    \"Falling back to scanning...\\n\";\n}\n\nmy $git_work_tree = get_working_dir();\n\nmy $retry = 1;\n\nmy $json_pkg;\neval {\n\trequire JSON::XS;\n\t$json_pkg = \"JSON::XS\";\n\t1;\n} or do {\n\trequire JSON::PP;\n\t$json_pkg = \"JSON::PP\";\n};\n\nlaunch_watchman();\n\nsub launch_watchman {\n\tmy $o = watchman_query();\n\tif (is_work_tree_watched($o)) {\n\t\toutput_result($o-\u003e{clock}, @{$o-\u003e{files}});\n\t}\n}\n\nsub output_result {\n\tmy ($clockid, @files) = @_;\n\n\t# Uncomment for debugging watchman output\n\t# open (my $fh, \"\u003e\", \".git/watchman-output.out\");\n\t# binmode $fh, \":utf8\";\n\t# print $fh \"$clockid\\n@files\\n\";\n\t# close $fh;\n\n\tbinmode STDOUT, \":utf8\";\n\tprint $clockid;\n\tprint \"\\0\";\n\tlocal $, = \"\\0\";\n\tprint @files;\n}\n\nsub watchman_clock {\n\tmy $response = qx/watchman clock \"$git_work_tree\"/;\n\tdie \"Failed to get clock id on '$git_work_tree'.\\n\" .\n\t\t\"Falling back to scanning...\\n\" if $? != 0;\n\n\treturn $json_pkg-\u003enew-\u003eutf8-\u003edecode($response);\n}\n\nsub watchman_query {\n\tmy $pid = open2(\\*CHLD_OUT, \\*CHLD_IN, 'watchman -j --no-pretty')\n\tor die \"open2() failed: $!\\n\" .\n\t\"Falling back to scanning...\\n\";\n\n\t# In the query expression below we're asking for names of files that\n\t# changed since $last_update_token but not from the .git folder.\n\t#\n\t# To accomplish this, we're using the \"since\" generator to use the\n\t# recency index to select candidate nodes and \"fields\" to limit the\n\t# output to file names only. Then we're using the \"expression\" term to\n\t# further constrain the results.\n\tmy $last_update_line = \"\";\n\tif (substr($last_update_token, 0, 1) eq \"c\") {\n\t\t$last_update_token = \"\\\"$last_update_token\\\"\";\n\t\t$last_update_line = qq[\\n\"since\": $last_update_token,];\n\t}\n\tmy $query = \u003c\u003c\"\tEND\";\n\t\t[\"query\", \"$git_work_tree\", {$last_update_line\n\t\t\t\"fields\": [\"name\"],\n\t\t\t\"expression\": [\"not\", [\"dirname\", \".git\"]]\n\t\t}]\n\tEND\n\n\t# Uncomment for debugging the watchman query\n\t# open (my $fh, \"\u003e\", \".git/watchman-query.json\");\n\t# print $fh $query;\n\t# close $fh;\n\n\tprint CHLD_IN $query;\n\tclose CHLD_IN;\n\tmy $response = do {local $/; \u003cCHLD_OUT\u003e};\n\n\t# Uncomment for debugging the watch response\n\t# open ($fh, \"\u003e\", \".git/watchman-response.json\");\n\t# print $fh $response;\n\t# close $fh;\n\n\tdie \"Watchman: command returned no output.\\n\" .\n\t\"Falling back to scanning...\\n\" if $response eq \"\";\n\tdie \"Watchman: command returned invalid output: $response\\n\" .\n\t\"Falling back to scanning...\\n\" unless $response =~ /^\\{/;\n\n\treturn $json_pkg-\u003enew-\u003eutf8-\u003edecode($response);\n}\n\nsub is_work_tree_watched {\n\tmy ($output) = @_;\n\tmy $error = $output-\u003e{error};\n\tif ($retry \u003e 0 and $error and $error =~ m/unable to resolve root .* directory (.*) is not watched/) {\n\t\t$retry--;\n\t\tmy $response = qx/watchman watch \"$git_work_tree\"/;\n\t\tdie \"Failed to make watchman watch '$git_work_tree'.\\n\" .\n\t\t    \"Falling back to scanning...\\n\" if $? != 0;\n\t\t$output = $json_pkg-\u003enew-\u003eutf8-\u003edecode($response);\n\t\t$error = $output-\u003e{error};\n\t\tdie \"Watchman: $error.\\n\" .\n\t\t\"Falling back to scanning...\\n\" if $error;\n\n\t\t# Uncomment for debugging watchman output\n\t\t# open (my $fh, \"\u003e\", \".git/watchman-output.out\");\n\t\t# close $fh;\n\n\t\t# Watchman will always return all files on the first query so\n\t\t# return the fast \"everything is dirty\" flag to git and do the\n\t\t# Watchman query just to get it over with now so we won't pay\n\t\t# the cost in git to look up each individual file.\n\t\tmy $o = watchman_clock();\n\t\t$error = $output-\u003e{error};\n\n\t\tdie \"Watchman: $error.\\n\" .\n\t\t\"Falling back to scanning...\\n\" if $error;\n\n\t\toutput_result($o-\u003e{clock}, (\"/\"));\n\t\t$last_update_token = $o-\u003e{clock};\n\n\t\teval { launch_watchman() };\n\t\treturn 0;\n\t}\n\n\tdie \"Watchman: $error.\\n\" .\n\t\"Falling back to scanning...\\n\" if $error;\n\n\treturn 1;\n}\n\nsub get_working_dir {\n\tmy $working_dir;\n\tif ($^O =~ 'msys' || $^O =~ 'cygwin') {\n\t\t$working_dir = Win32::GetCwd();\n\t\t$working_dir =~ tr/\\\\/\\//;\n\t} else {\n\t\trequire Cwd;\n\t\t$working_dir = Cwd::cwd();\n\t}\n\n\treturn $working_dir;\n}"
+  },
+  {
+    "file": ".git/hooks/post-update.sample",
+    "chunk_id": "fallback_1_8:0caf0dc1",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 8,
+    "code": "#!/bin/sh\n#\n# An example hook script to prepare a packed repository for use over\n# dumb transports.\n#\n# To enable this hook, rename this file to \"post-update\".\n\nexec git update-server-info"
+  },
+  {
+    "file": ".git/hooks/pre-applypatch.sample",
+    "chunk_id": "fallback_1_14:4be6c140",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 14,
+    "code": "#!/bin/sh\n#\n# An example hook script to verify what is about to be committed\n# by applypatch from an e-mail message.\n#\n# The hook should exit with non-zero status after issuing an\n# appropriate message if it wants to stop the commit.\n#\n# To enable this hook, rename this file to \"pre-applypatch\".\n\n. git-sh-setup\nprecommit=\"$(git rev-parse --git-path hooks/pre-commit)\"\ntest -x \"$precommit\" \u0026\u0026 exec \"$precommit\" ${1+\"$@\"}\n:"
+  },
+  {
+    "file": ".git/hooks/pre-commit.sample",
+    "chunk_id": "fallback_1_49:669b715a",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 49,
+    "code": "#!/bin/sh\n#\n# An example hook script to verify what is about to be committed.\n# Called by \"git commit\" with no arguments.  The hook should\n# exit with non-zero status after issuing an appropriate message if\n# it wants to stop the commit.\n#\n# To enable this hook, rename this file to \"pre-commit\".\n\nif git rev-parse --verify HEAD \u003e/dev/null 2\u003e\u00261\nthen\n\tagainst=HEAD\nelse\n\t# Initial commit: diff against an empty tree object\n\tagainst=$(git hash-object -t tree /dev/null)\nfi\n\n# If you want to allow non-ASCII filenames set this variable to true.\nallownonascii=$(git config --type=bool hooks.allownonascii)\n\n# Redirect output to stderr.\nexec 1\u003e\u00262\n\n# Cross platform projects tend to avoid non-ASCII filenames; prevent\n# them from being added to the repository. We exploit the fact that the\n# printable range starts at the space character and ends with tilde.\nif [ \"$allownonascii\" != \"true\" ] \u0026\u0026\n\t# Note that the use of brackets around a tr range is ok here, (it's\n\t# even required, for portability to Solaris 10's /usr/bin/tr), since\n\t# the square bracket bytes happen to fall in the designated range.\n\ttest $(git diff-index --cached --name-only --diff-filter=A -z $against |\n\t  LC_ALL=C tr -d '[ -~]\\0' | wc -c) != 0\nthen\n\tcat \u003c\u003c\\EOF\nError: Attempt to add a non-ASCII file name.\n\nThis can cause problems if you want to work with people on other platforms.\n\nTo be portable it is advisable to rename the file.\n\nIf you know what you are doing you can disable this check using:\n\n  git config hooks.allownonascii true\nEOF\n\texit 1\nfi\n\n# If there are whitespace errors, print the offending file names and fail.\nexec git diff-index --check --cached $against --"
+  },
+  {
+    "file": ".git/hooks/pre-merge-commit.sample",
+    "chunk_id": "fallback_1_13:128cff6e",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 13,
+    "code": "#!/bin/sh\n#\n# An example hook script to verify what is about to be committed.\n# Called by \"git merge\" with no arguments.  The hook should\n# exit with non-zero status after issuing an appropriate message to\n# stderr if it wants to stop the merge commit.\n#\n# To enable this hook, rename this file to \"pre-merge-commit\".\n\n. git-sh-setup\ntest -x \"$GIT_DIR/hooks/pre-commit\" \u0026\u0026\n        exec \"$GIT_DIR/hooks/pre-commit\"\n:"
+  },
+  {
+    "file": ".git/hooks/pre-push.sample",
+    "chunk_id": "fallback_1_53:298957d4",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 53,
+    "code": "#!/bin/sh\n\n# An example hook script to verify what is about to be pushed.  Called by \"git\n# push\" after it has checked the remote status, but before anything has been\n# pushed.  If this script exits with a non-zero status nothing will be pushed.\n#\n# This hook is called with the following parameters:\n#\n# $1 -- Name of the remote to which the push is being done\n# $2 -- URL to which the push is being done\n#\n# If pushing without using a named remote those arguments will be equal.\n#\n# Information about the commits which are being pushed is supplied as lines to\n# the standard input in the form:\n#\n#   \u003clocal ref\u003e \u003clocal oid\u003e \u003cremote ref\u003e \u003cremote oid\u003e\n#\n# This sample shows how to prevent push of commits where the log message starts\n# with \"WIP\" (work in progress).\n\nremote=\"$1\"\nurl=\"$2\"\n\nzero=$(git hash-object --stdin \u003c/dev/null | tr '[0-9a-f]' '0')\n\nwhile read local_ref local_oid remote_ref remote_oid\ndo\n\tif test \"$local_oid\" = \"$zero\"\n\tthen\n\t\t# Handle delete\n\t\t:\n\telse\n\t\tif test \"$remote_oid\" = \"$zero\"\n\t\tthen\n\t\t\t# New branch, examine all commits\n\t\t\trange=\"$local_oid\"\n\t\telse\n\t\t\t# Update to existing branch, examine new commits\n\t\t\trange=\"$remote_oid..$local_oid\"\n\t\tfi\n\n\t\t# Check for WIP commit\n\t\tcommit=$(git rev-list -n 1 --grep '^WIP' \"$range\")\n\t\tif test -n \"$commit\"\n\t\tthen\n\t\t\techo \u003e\u00262 \"Found WIP commit in $local_ref, not pushing\"\n\t\t\texit 1\n\t\tfi\n\tfi\ndone\n\nexit 0"
+  },
+  {
+    "file": ".git/hooks/pre-rebase.sample",
+    "chunk_id": "fallback_1_169:32070122",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 169,
+    "code": "#!/bin/sh\n#\n# Copyright (c) 2006, 2008 Junio C Hamano\n#\n# The \"pre-rebase\" hook is run just before \"git rebase\" starts doing\n# its job, and can prevent the command from running by exiting with\n# non-zero status.\n#\n# The hook is called with the following parameters:\n#\n# $1 -- the upstream the series was forked from.\n# $2 -- the branch being rebased (or empty when rebasing the current branch).\n#\n# This sample shows how to prevent topic branches that are already\n# merged to 'next' branch from getting rebased, because allowing it\n# would result in rebasing already published history.\n\npublish=next\nbasebranch=\"$1\"\nif test \"$#\" = 2\nthen\n\ttopic=\"refs/heads/$2\"\nelse\n\ttopic=`git symbolic-ref HEAD` ||\n\texit 0 ;# we do not interrupt rebasing detached HEAD\nfi\n\ncase \"$topic\" in\nrefs/heads/??/*)\n\t;;\n*)\n\texit 0 ;# we do not interrupt others.\n\t;;\nesac\n\n# Now we are dealing with a topic branch being rebased\n# on top of master.  Is it OK to rebase it?\n\n# Does the topic really exist?\ngit show-ref -q \"$topic\" || {\n\techo \u003e\u00262 \"No such branch $topic\"\n\texit 1\n}\n\n# Is topic fully merged to master?\nnot_in_master=`git rev-list --pretty=oneline ^master \"$topic\"`\nif test -z \"$not_in_master\"\nthen\n\techo \u003e\u00262 \"$topic is fully merged to master; better remove it.\"\n\texit 1 ;# we could allow it, but there is no point.\nfi\n\n# Is topic ever merged to next?  If so you should not be rebasing it.\nonly_next_1=`git rev-list ^master \"^$topic\" ${publish} | sort`\nonly_next_2=`git rev-list ^master           ${publish} | sort`\nif test \"$only_next_1\" = \"$only_next_2\"\nthen\n\tnot_in_topic=`git rev-list \"^$topic\" master`\n\tif test -z \"$not_in_topic\"\n\tthen\n\t\techo \u003e\u00262 \"$topic is already up to date with master\"\n\t\texit 1 ;# we could allow it, but there is no point.\n\telse\n\t\texit 0\n\tfi\nelse\n\tnot_in_next=`git rev-list --pretty=oneline ^${publish} \"$topic\"`\n\t/usr/bin/perl -e '\n\t\tmy $topic = $ARGV[0];\n\t\tmy $msg = \"* $topic has commits already merged to public branch:\\n\";\n\t\tmy (%not_in_next) = map {\n\t\t\t/^([0-9a-f]+) /;\n\t\t\t($1 =\u003e 1);\n\t\t} split(/\\n/, $ARGV[1]);\n\t\tfor my $elem (map {\n\t\t\t\t/^([0-9a-f]+) (.*)$/;\n\t\t\t\t[$1 =\u003e $2];\n\t\t\t} split(/\\n/, $ARGV[2])) {\n\t\t\tif (!exists $not_in_next{$elem-\u003e[0]}) {\n\t\t\t\tif ($msg) {\n\t\t\t\t\tprint STDERR $msg;\n\t\t\t\t\tundef $msg;\n\t\t\t\t}\n\t\t\t\tprint STDERR \" $elem-\u003e[1]\\n\";\n\t\t\t}\n\t\t}\n\t' \"$topic\" \"$not_in_next\" \"$not_in_master\"\n\texit 1\nfi\n\n\u003c\u003c\\DOC_END\n\nThis sample hook safeguards topic branches that have been\npublished from being rewound.\n\nThe workflow assumed here is:\n\n * Once a topic branch forks from \"master\", \"master\" is never\n   merged into it again (either directly or indirectly).\n\n * Once a topic branch is fully cooked and merged into \"master\",\n   it is deleted.  If you need to build on top of it to correct\n   earlier mistakes, a new topic branch is created by forking at\n   the tip of the \"master\".  This is not strictly necessary, but\n   it makes it easier to keep your history simple.\n\n * Whenever you need to test or publish your changes to topic\n   branches, merge them into \"next\" branch.\n\nThe script, being an example, hardcodes the publish branch name\nto be \"next\", but it is trivial to make it configurable via\n$GIT_DIR/config mechanism.\n\nWith this workflow, you would want to know:\n\n(1) ... if a topic branch has ever been merged to \"next\".  Young\n    topic branches can have stupid mistakes you would rather\n    clean up before publishing, and things that have not been\n    merged into other branches can be easily rebased without\n    affecting other people.  But once it is published, you would\n    not want to rewind it.\n\n(2) ... if a topic branch has been fully merged to \"master\".\n    Then you can delete it.  More importantly, you should not\n    build on top of it -- other people may already want to\n    change things related to the topic as patches against your\n    \"master\", so if you need further changes, it is better to\n    fork the topic (perhaps with the same name) afresh from the\n    tip of \"master\".\n\nLet's look at this example:\n\n\t\t   o---o---o---o---o---o---o---o---o---o \"next\"\n\t\t  /       /           /           /\n\t\t /   a---a---b A     /           /\n\t\t/   /               /           /\n\t       /   /   c---c---c---c B         /\n\t      /   /   /             \\         /\n\t     /   /   /   b---b C     \\       /\n\t    /   /   /   /             \\     /\n    ---o---o---o---o---o---o---o---o---o---o---o \"master\"\n\n\nA, B and C are topic branches.\n\n * A has one fix since it was merged up to \"next\".\n\n * B has finished.  It has been fully merged up to \"master\" and \"next\",\n   and is ready to be deleted.\n\n * C has not merged to \"next\" at all.\n\nWe would want to allow C to be rebased, refuse A, and encourage\nB to be deleted.\n\nTo compute (1):\n\n\tgit rev-list ^master ^topic next\n\tgit rev-list ^master        next\n\n\tif these match, topic has not merged in next at all.\n\nTo compute (2):\n\n\tgit rev-list master..topic\n\n\tif this is empty, it is fully merged to \"master\".\n\nDOC_END"
+  },
+  {
+    "file": ".git/hooks/pre-receive.sample",
+    "chunk_id": "fallback_1_24:8eb8f7b6",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 24,
+    "code": "#!/bin/sh\n#\n# An example hook script to make use of push options.\n# The example simply echoes all push options that start with 'echoback='\n# and rejects all pushes when the \"reject\" push option is used.\n#\n# To enable this hook, rename this file to \"pre-receive\".\n\nif test -n \"$GIT_PUSH_OPTION_COUNT\"\nthen\n\ti=0\n\twhile test \"$i\" -lt \"$GIT_PUSH_OPTION_COUNT\"\n\tdo\n\t\teval \"value=\\$GIT_PUSH_OPTION_$i\"\n\t\tcase \"$value\" in\n\t\techoback=*)\n\t\t\techo \"echo from the pre-receive-hook: ${value#*=}\" \u003e\u00262\n\t\t\t;;\n\t\treject)\n\t\t\texit 1\n\t\tesac\n\t\ti=$((i + 1))\n\tdone\nfi"
+  },
+  {
+    "file": ".git/hooks/prepare-commit-msg.sample",
+    "chunk_id": "fallback_1_42:2cc7c677",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 42,
+    "code": "#!/bin/sh\n#\n# An example hook script to prepare the commit log message.\n# Called by \"git commit\" with the name of the file that has the\n# commit message, followed by the description of the commit\n# message's source.  The hook's purpose is to edit the commit\n# message file.  If the hook fails with a non-zero status,\n# the commit is aborted.\n#\n# To enable this hook, rename this file to \"prepare-commit-msg\".\n\n# This hook includes three examples. The first one removes the\n# \"# Please enter the commit message...\" help message.\n#\n# The second includes the output of \"git diff --name-status -r\"\n# into the message, just before the \"git status\" output.  It is\n# commented because it doesn't cope with --amend or with squashed\n# commits.\n#\n# The third example adds a Signed-off-by line to the message, that can\n# still be edited.  This is rarely a good idea.\n\nCOMMIT_MSG_FILE=$1\nCOMMIT_SOURCE=$2\nSHA1=$3\n\n/usr/bin/perl -i.bak -ne 'print unless(m/^. Please enter the commit message/..m/^#$/)' \"$COMMIT_MSG_FILE\"\n\n# case \"$COMMIT_SOURCE,$SHA1\" in\n#  ,|template,)\n#    /usr/bin/perl -i.bak -pe '\n#       print \"\\n\" . `git diff --cached --name-status -r`\n# \t if /^#/ \u0026\u0026 $first++ == 0' \"$COMMIT_MSG_FILE\" ;;\n#  *) ;;\n# esac\n\n# SOB=$(git var GIT_COMMITTER_IDENT | sed -n 's/^\\(.*\u003e\\).*$/Signed-off-by: \\1/p')\n# git interpret-trailers --in-place --trailer \"$SOB\" \"$COMMIT_MSG_FILE\"\n# if test -z \"$COMMIT_SOURCE\"\n# then\n#   /usr/bin/perl -i.bak -pe 'print \"\\n\" if !$first_line++' \"$COMMIT_MSG_FILE\"\n# fi"
+  },
+  {
+    "file": ".git/hooks/push-to-checkout.sample",
+    "chunk_id": "fallback_1_78:6c51fed7",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 78,
+    "code": "#!/bin/sh\n\n# An example hook script to update a checked-out tree on a git push.\n#\n# This hook is invoked by git-receive-pack(1) when it reacts to git\n# push and updates reference(s) in its repository, and when the push\n# tries to update the branch that is currently checked out and the\n# receive.denyCurrentBranch configuration variable is set to\n# updateInstead.\n#\n# By default, such a push is refused if the working tree and the index\n# of the remote repository has any difference from the currently\n# checked out commit; when both the working tree and the index match\n# the current commit, they are updated to match the newly pushed tip\n# of the branch. This hook is to be used to override the default\n# behaviour; however the code below reimplements the default behaviour\n# as a starting point for convenient modification.\n#\n# The hook receives the commit with which the tip of the current\n# branch is going to be updated:\ncommit=$1\n\n# It can exit with a non-zero status to refuse the push (when it does\n# so, it must not modify the index or the working tree).\ndie () {\n\techo \u003e\u00262 \"$*\"\n\texit 1\n}\n\n# Or it can make any necessary changes to the working tree and to the\n# index to bring them to the desired state when the tip of the current\n# branch is updated to the new commit, and exit with a zero status.\n#\n# For example, the hook can simply run git read-tree -u -m HEAD \"$1\"\n# in order to emulate git fetch that is run in the reverse direction\n# with git push, as the two-tree form of git read-tree -u -m is\n# essentially the same as git switch or git checkout that switches\n# branches while keeping the local changes in the working tree that do\n# not interfere with the difference between the branches.\n\n# The below is a more-or-less exact translation to shell of the C code\n# for the default behaviour for git's push-to-checkout hook defined in\n# the push_to_deploy() function in builtin/receive-pack.c.\n#\n# Note that the hook will be executed from the repository directory,\n# not from the working tree, so if you want to perform operations on\n# the working tree, you will have to adapt your code accordingly, e.g.\n# by adding \"cd ..\" or using relative paths.\n\nif ! git update-index -q --ignore-submodules --refresh\nthen\n\tdie \"Up-to-date check failed\"\nfi\n\nif ! git diff-files --quiet --ignore-submodules --\nthen\n\tdie \"Working directory has unstaged changes\"\nfi\n\n# This is a rough translation of:\n#\n#   head_has_history() ? \"HEAD\" : EMPTY_TREE_SHA1_HEX\nif git cat-file -e HEAD 2\u003e/dev/null\nthen\n\thead=HEAD\nelse\n\thead=$(git hash-object -t tree --stdin \u003c/dev/null)\nfi\n\nif ! git diff-index --quiet --cached --ignore-submodules $head --\nthen\n\tdie \"Working directory has staged changes\"\nfi\n\nif ! git read-tree -u -m \"$commit\"\nthen\n\tdie \"Could not update working tree to new HEAD\"\nfi"
+  },
+  {
+    "file": ".git/hooks/sendemail-validate.sample",
+    "chunk_id": "fallback_1_77:ea9cf74f",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 77,
+    "code": "#!/bin/sh\n\n# An example hook script to validate a patch (and/or patch series) before\n# sending it via email.\n#\n# The hook should exit with non-zero status after issuing an appropriate\n# message if it wants to prevent the email(s) from being sent.\n#\n# To enable this hook, rename this file to \"sendemail-validate\".\n#\n# By default, it will only check that the patch(es) can be applied on top of\n# the default upstream branch without conflicts in a secondary worktree. After\n# validation (successful or not) of the last patch of a series, the worktree\n# will be deleted.\n#\n# The following config variables can be set to change the default remote and\n# remote ref that are used to apply the patches against:\n#\n#   sendemail.validateRemote (default: origin)\n#   sendemail.validateRemoteRef (default: HEAD)\n#\n# Replace the TODO placeholders with appropriate checks according to your\n# needs.\n\nvalidate_cover_letter () {\n\tfile=\"$1\"\n\t# TODO: Replace with appropriate checks (e.g. spell checking).\n\ttrue\n}\n\nvalidate_patch () {\n\tfile=\"$1\"\n\t# Ensure that the patch applies without conflicts.\n\tgit am -3 \"$file\" || return\n\t# TODO: Replace with appropriate checks for this patch\n\t# (e.g. checkpatch.pl).\n\ttrue\n}\n\nvalidate_series () {\n\t# TODO: Replace with appropriate checks for the whole series\n\t# (e.g. quick build, coding style checks, etc.).\n\ttrue\n}\n\n# main -------------------------------------------------------------------------\n\nif test \"$GIT_SENDEMAIL_FILE_COUNTER\" = 1\nthen\n\tremote=$(git config --default origin --get sendemail.validateRemote) \u0026\u0026\n\tref=$(git config --default HEAD --get sendemail.validateRemoteRef) \u0026\u0026\n\tworktree=$(mktemp --tmpdir -d sendemail-validate.XXXXXXX) \u0026\u0026\n\tgit worktree add -fd --checkout \"$worktree\" \"refs/remotes/$remote/$ref\" \u0026\u0026\n\tgit config --replace-all sendemail.validateWorktree \"$worktree\"\nelse\n\tworktree=$(git config --get sendemail.validateWorktree)\nfi || {\n\techo \"sendemail-validate: error: failed to prepare worktree\" \u003e\u00262\n\texit 1\n}\n\nunset GIT_DIR GIT_WORK_TREE\ncd \"$worktree\" \u0026\u0026\n\nif grep -q \"^diff --git \" \"$1\"\nthen\n\tvalidate_patch \"$1\"\nelse\n\tvalidate_cover_letter \"$1\"\nfi \u0026\u0026\n\nif test \"$GIT_SENDEMAIL_FILE_COUNTER\" = \"$GIT_SENDEMAIL_FILE_TOTAL\"\nthen\n\tgit config --unset-all sendemail.validateWorktree \u0026\u0026\n\ttrap 'git worktree remove -ff \"$worktree\"' EXIT \u0026\u0026\n\tvalidate_series\nfi"
+  },
+  {
+    "file": ".git/hooks/update.sample",
+    "chunk_id": "fallback_1_128:8e836191",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 128,
+    "code": "#!/bin/sh\n#\n# An example hook script to block unannotated tags from entering.\n# Called by \"git receive-pack\" with arguments: refname sha1-old sha1-new\n#\n# To enable this hook, rename this file to \"update\".\n#\n# Config\n# ------\n# hooks.allowunannotated\n#   This boolean sets whether unannotated tags will be allowed into the\n#   repository.  By default they won't be.\n# hooks.allowdeletetag\n#   This boolean sets whether deleting tags will be allowed in the\n#   repository.  By default they won't be.\n# hooks.allowmodifytag\n#   This boolean sets whether a tag may be modified after creation. By default\n#   it won't be.\n# hooks.allowdeletebranch\n#   This boolean sets whether deleting branches will be allowed in the\n#   repository.  By default they won't be.\n# hooks.denycreatebranch\n#   This boolean sets whether remotely creating branches will be denied\n#   in the repository.  By default this is allowed.\n#\n\n# --- Command line\nrefname=\"$1\"\noldrev=\"$2\"\nnewrev=\"$3\"\n\n# --- Safety check\nif [ -z \"$GIT_DIR\" ]; then\n\techo \"Don't run this script from the command line.\" \u003e\u00262\n\techo \" (if you want, you could supply GIT_DIR then run\" \u003e\u00262\n\techo \"  $0 \u003cref\u003e \u003coldrev\u003e \u003cnewrev\u003e)\" \u003e\u00262\n\texit 1\nfi\n\nif [ -z \"$refname\" -o -z \"$oldrev\" -o -z \"$newrev\" ]; then\n\techo \"usage: $0 \u003cref\u003e \u003coldrev\u003e \u003cnewrev\u003e\" \u003e\u00262\n\texit 1\nfi\n\n# --- Config\nallowunannotated=$(git config --type=bool hooks.allowunannotated)\nallowdeletebranch=$(git config --type=bool hooks.allowdeletebranch)\ndenycreatebranch=$(git config --type=bool hooks.denycreatebranch)\nallowdeletetag=$(git config --type=bool hooks.allowdeletetag)\nallowmodifytag=$(git config --type=bool hooks.allowmodifytag)\n\n# check for no description\nprojectdesc=$(sed -e '1q' \"$GIT_DIR/description\")\ncase \"$projectdesc\" in\n\"Unnamed repository\"* | \"\")\n\techo \"*** Project description file hasn't been set\" \u003e\u00262\n\texit 1\n\t;;\nesac\n\n# --- Check types\n# if $newrev is 0000...0000, it's a commit to delete a ref.\nzero=$(git hash-object --stdin \u003c/dev/null | tr '[0-9a-f]' '0')\nif [ \"$newrev\" = \"$zero\" ]; then\n\tnewrev_type=delete\nelse\n\tnewrev_type=$(git cat-file -t $newrev)\nfi\n\ncase \"$refname\",\"$newrev_type\" in\n\trefs/tags/*,commit)\n\t\t# un-annotated tag\n\t\tshort_refname=${refname##refs/tags/}\n\t\tif [ \"$allowunannotated\" != \"true\" ]; then\n\t\t\techo \"*** The un-annotated tag, $short_refname, is not allowed in this repository\" \u003e\u00262\n\t\t\techo \"*** Use 'git tag [ -a | -s ]' for tags you want to propagate.\" \u003e\u00262\n\t\t\texit 1\n\t\tfi\n\t\t;;\n\trefs/tags/*,delete)\n\t\t# delete tag\n\t\tif [ \"$allowdeletetag\" != \"true\" ]; then\n\t\t\techo \"*** Deleting a tag is not allowed in this repository\" \u003e\u00262\n\t\t\texit 1\n\t\tfi\n\t\t;;\n\trefs/tags/*,tag)\n\t\t# annotated tag\n\t\tif [ \"$allowmodifytag\" != \"true\" ] \u0026\u0026 git rev-parse $refname \u003e /dev/null 2\u003e\u00261\n\t\tthen\n\t\t\techo \"*** Tag '$refname' already exists.\" \u003e\u00262\n\t\t\techo \"*** Modifying a tag is not allowed in this repository.\" \u003e\u00262\n\t\t\texit 1\n\t\tfi\n\t\t;;\n\trefs/heads/*,commit)\n\t\t# branch\n\t\tif [ \"$oldrev\" = \"$zero\" -a \"$denycreatebranch\" = \"true\" ]; then\n\t\t\techo \"*** Creating a branch is not allowed in this repository\" \u003e\u00262\n\t\t\texit 1\n\t\tfi\n\t\t;;\n\trefs/heads/*,delete)\n\t\t# delete branch\n\t\tif [ \"$allowdeletebranch\" != \"true\" ]; then\n\t\t\techo \"*** Deleting a branch is not allowed in this repository\" \u003e\u00262\n\t\t\texit 1\n\t\tfi\n\t\t;;\n\trefs/remotes/*,commit)\n\t\t# tracking branch\n\t\t;;\n\trefs/remotes/*,delete)\n\t\t# delete tracking branch\n\t\tif [ \"$allowdeletebranch\" != \"true\" ]; then\n\t\t\techo \"*** Deleting a tracking branch is not allowed in this repository\" \u003e\u00262\n\t\t\texit 1\n\t\tfi\n\t\t;;\n\t*)\n\t\t# Anything else (is there anything else?)\n\t\techo \"*** Update hook: unknown type of update to ref $refname of type $newrev_type\" \u003e\u00262\n\t\texit 1\n\t\t;;\nesac\n\n# --- Finished\nexit 0"
+  },
+  {
+    "file": ".gitignore",
+    "chunk_id": "fallback_1_5:597ddf77",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 5,
+    "code": "**/node_modules/\n**/cdk.out/\n.env\nchunk\nchunks.json"
+  },
+  {
+    "file": ".prettierrc.json",
+    "chunk_id": "fallback_1_8:de5cff42",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 8,
+    "code": "{\n    \"semi\": true,\n    \"trailingComma\": \"all\",\n    \"singleQuote\": true,\n    \"printWidth\": 120,\n    \"tabWidth\": 2,\n    \"plugins\": [\"prettier-plugin-tailwindcss\"]\n  }"
+  },
+  {
+    "file": ".scripts/alias.sh",
+    "chunk_id": "fallback_1_15:a39ba942",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 15,
+    "code": "#!/bin/zsh\n\neval \"$(dircolors -b)\"\nexport LS_OPTIONS='--color=auto'\nalias ls='ls $LS_OPTIONS'\nalias l='ls $LS_OPTIONS -lA'\nalias ll='ls $LS_OPTIONS -laFh '\n\nalias gotest='$(git rev-parse --show-toplevel)/.scripts/gotest.sh \"$@\"'\nalias gorun='while inotifywait -r -e close_write /workspace/monorepo ; do go run . | jq '.'; done'\nalias xclip='socat - tcp:host.docker.internal:8121'\nalias srctree='tree -d -a -I \"cdk.out\" -I \"node_modules\" -I \".git\" -I \".angular\" -I \"dist\"'\nalias rt='git rev-parse --show-toplevel'\nalias lgd='unbuffer aws logs tail \"/aws/lambda/huddle-websocket-default\" --follow --format short |  unbuffer -p cut -d \" \" -f 2- | loggo stream -t /workspace/loggo.fmt'\n"
+  },
+  {
+    "file": ".scripts/gotest.sh",
+    "chunk_id": "fallback_1_7:0b68cf4c",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 7,
+    "code": "#!/bin/zsh\n\nroot=$(git rev-parse --show-toplevel)\ngo_dirs=\"${root}/cdk ${root}/cmd ${root}/pkg ${root}/internal\"\n\ndiv=\"\\n************************************************************\\n\"\nwhile inotifywait -r -e modify,create,delete $root ; do echo $div \u0026\u0026 go test ./... \"$@\"; done"
+  },
+  {
+    "file": ".vscode/settings.json",
+    "chunk_id": "fallback_1_3:7172de90",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 3,
+    "code": "{\n    \"files.autoSave\": \"onFocusChange\"\n}"
+  },
+  {
+    "file": "README.md",
+    "chunk_id": "fallback_1_2:aba86225",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 2,
+    "code": "# devcontainer\nSimple starter repo for setting up a project using devcontainers."
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "bd2b5c97b1dc87b72276da09e61eb94ba99518833b7b92c2fe4bcac2e4fd1b73",
+    "chunk_type": "package",
+    "start_line": 1,
+    "end_line": 200,
+    "code": "package cmd\n\nimport (\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"log\"\n\t\"os\"\n\t\"path/filepath\"\n\n\t// This library does the parsing of .gitignore patterns\n\tgitignore \"github.com/sabhiram/go-gitignore\"\n\t\"github.com/stream-ai/chunk/internal/chunker\"\n\n\t\"github.com/spf13/cobra\"\n)\n\nvar (\n\toutputPath    string\n\tforcedLang    string\n\tfallbackLines int\n\trootDir       string\n)\n\nvar rootCmd = \u0026cobra.Command{\n\tUse:   \"chunk\",\n\tShort: \"Chunk code files in the current directory (and subdirs) using .gitignore logic\",\n\tLong: `chunk automatically scans the specified directory (default: current dir)\nand all subdirectories, merges local .gitignore files, and chunks code.\nNo file arguments are required or accepted.`,\n\tRunE: runChunk,\n}\n\nfunc init() {\n\t// Common flags\n\trootCmd.Flags().StringVarP(\u0026outputPath, \"output\", \"o\", \"-\", \"Output destination ('-' for STDOUT)\")\n\trootCmd.Flags().StringVarP(\u0026forcedLang, \"lang\", \"l\", \"\", \"Force a specific language parser (go|ts|react|fallback)\")\n\trootCmd.Flags().IntVar(\u0026fallbackLines, \"fallback-lines\", 200, \"Number of lines per fallback chunk\")\n\n\t// Directory to walk (default: current directory)\n\trootCmd.Flags().StringVar(\u0026rootDir, \"dir\", \".\", \"Root directory from which to chunk everything\")\n}\n\n// Execute is called by main.go to run the CLI.\nfunc Execute() {\n\tif err := rootCmd.Execute(); err != nil {\n\t\tfmt.Fprintln(os.Stderr, err)\n\t\tos.Exit(1)\n\t}\n}\n\nfunc runChunk(cmd *cobra.Command, args []string) error {\n\t// We'll gather all the resulting chunks in memory\n\tvar allChunks []chunker.Chunk\n\n\terr := walkWithGitIgnore(rootDir, func(path string, isDir bool) error {\n\t\tif isDir {\n\t\t\t// For directories, do nothing special\n\t\t\treturn nil\n\t\t}\n\t\t// For each file: call your actual chunking logic\n\t\tfileChunks, cErr := chunker.ProcessFile(path, forcedLang, fallbackLines)\n\t\tif cErr != nil {\n\t\t\t// If there's an error chunking, log and skip\n\t\t\tlog.Printf(\"Error chunking file %s: %v\\n\", path, cErr)\n\t\t\treturn nil\n\t\t}\n\t\tallChunks = append(allChunks, fileChunks...)\n\t\treturn nil\n\t})\n\tif err != nil {\n\t\treturn fmt.Errorf(\"error walking directory: %w\", err)\n\t}\n\n\t// Output the chunks\n\treturn writeChunks(allChunks)\n}\n\n// writeChunks writes chunk data as JSON\nfunc writeChunks(chunks []chunker.Chunk) error {\n\tvar out *os.File\n\tif outputPath == \"-\" {\n\t\tout = os.Stdout\n\t} else {\n\t\tf, err := os.Create(outputPath)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\t\tdefer f.Close()\n\t\tout = f\n\t}\n\tenc := json.NewEncoder(out)\n\tenc.SetIndent(\"\", \"  \")\n\treturn enc.Encode(chunks)\n}\n\n// ------------------\n// .gitignore Stack Logic\n// ------------------\n\n// We'll store the compiled GitIgnore plus the directory it was loaded from\ntype ignoreItem struct {\n\tig  *gitignore.GitIgnore\n\tdir string\n}\n\ntype ignoreStack struct {\n\titems []ignoreItem\n}\n\nfunc (s *ignoreStack) push(item ignoreItem) {\n\ts.items = append(s.items, item)\n}\n\nfunc (s *ignoreStack) pop() {\n\tif len(s.items) \u003e 0 {\n\t\ts.items = s.items[:len(s.items)-1]\n\t}\n}\n\n// Checks from top -\u003e bottom. If any ignore rule matches, we skip the file/dir.\nfunc (s *ignoreStack) isIgnored(path string) bool {\n\t// from top to bottom\n\tfor i := len(s.items) - 1; i \u003e= 0; i-- {\n\t\tbaseDir := s.items[i].dir\n\t\tig := s.items[i].ig\n\t\trel, err := filepath.Rel(baseDir, path)\n\t\tif err == nil {\n\t\t\tif ig.MatchesPath(rel) {\n\t\t\t\treturn true\n\t\t\t}\n\t\t}\n\t}\n\treturn false\n}\n\n// walkWithGitIgnore recursively descends from \"dir\", merging .gitignore files.\nfunc walkWithGitIgnore(dir string, fileCallback func(path string, isDir bool) error) error {\n\tvar stack ignoreStack\n\n\t// We'll define a nested function for DFS so we can push/pop per directory\n\tvar dfs func(string) error\n\n\tdfs = func(currentDir string) error {\n\t\t// Attempt to load a .gitignore in the currentDir\n\t\tgitignorePath := filepath.Join(currentDir, \".gitignore\")\n\t\tif info, err := os.Stat(gitignorePath); err == nil \u0026\u0026 !info.IsDir() {\n\t\t\t// compile it\n\t\t\tig, err := gitignore.CompileIgnoreFile(gitignorePath)\n\t\t\tif err != nil {\n\t\t\t\treturn fmt.Errorf(\"error compiling.gitignore in %s: %w\", currentDir, err)\n\t\t\t}\n\t\t\t// push onto stack\n\t\t\tstack.push(ignoreItem{\n\t\t\t\tig:  ig,\n\t\t\t\tdir: currentDir,\n\t\t\t})\n\t\t}\n\n\t\t// read dir entries\n\t\tentries, err := os.ReadDir(currentDir)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\n\t\tfor _, e := range entries {\n\t\t\tname := e.Name()\n\t\t\tpath := filepath.Join(currentDir, name)\n\t\t\tisDir := e.IsDir()\n\n\t\t\t// Check stack to see if ignored\n\t\t\tif stack.isIgnored(path) {\n\t\t\t\tcontinue\n\t\t\t}\n\n\t\t\t// Callback\n\t\t\tif err := fileCallback(path, isDir); err != nil {\n\t\t\t\treturn err\n\t\t\t}\n\n\t\t\t// Recurse if directory\n\t\t\tif isDir {\n\t\t\t\tif err := dfs(path); err != nil {\n\t\t\t\t\treturn err\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\t// If we pushed in this directory, pop it\n\t\tif len(stack.items) \u003e 0 {\n\t\t\ttop := stack.items[len(stack.items)-1]\n\t\t\tif top.dir == currentDir {\n\t\t\t\tstack.pop()\n\t\t\t}\n\t\t}\n\t\treturn nil\n\t}\n\n\treturn dfs(dir)\n}\n"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "import_decl_3_15:f9d97c64",
+    "chunk_type": "import",
+    "start_line": 3,
+    "end_line": 15,
+    "code": "import (\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"log\"\n\t\"os\"\n\t\"path/filepath\"\n\n\t// This library does the parsing of .gitignore patterns\n\tgitignore \"github.com/sabhiram/go-gitignore\"\n\t\"github.com/stream-ai/chunk/internal/chunker\"\n\n\t\"github.com/spf13/cobra\"\n)"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "var_decl_17_22:2619b0a4",
+    "chunk_type": "var",
+    "start_line": 17,
+    "end_line": 22,
+    "code": "var (\n\toutputPath    string\n\tforcedLang    string\n\tfallbackLines int\n\trootDir       string\n)"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "var_decl_24_31:5e5f3429",
+    "chunk_type": "var",
+    "start_line": 24,
+    "end_line": 31,
+    "code": "var rootCmd = \u0026cobra.Command{\n\tUse:   \"chunk\",\n\tShort: \"Chunk code files in the current directory (and subdirs) using .gitignore logic\",\n\tLong: `chunk automatically scans the specified directory (default: current dir)\nand all subdirectories, merges local .gitignore files, and chunks code.\nNo file arguments are required or accepted.`,\n\tRunE: runChunk,\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "function:init:d3293cef",
+    "chunk_type": "function",
+    "start_line": 33,
+    "end_line": 41,
+    "code": "func init() {\n\t// Common flags\n\trootCmd.Flags().StringVarP(\u0026outputPath, \"output\", \"o\", \"-\", \"Output destination ('-' for STDOUT)\")\n\trootCmd.Flags().StringVarP(\u0026forcedLang, \"lang\", \"l\", \"\", \"Force a specific language parser (go|ts|react|fallback)\")\n\trootCmd.Flags().IntVar(\u0026fallbackLines, \"fallback-lines\", 200, \"Number of lines per fallback chunk\")\n\n\t// Directory to walk (default: current directory)\n\trootCmd.Flags().StringVar(\u0026rootDir, \"dir\", \".\", \"Root directory from which to chunk everything\")\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "function:Execute:75ba57d4",
+    "chunk_type": "function",
+    "start_line": 44,
+    "end_line": 49,
+    "code": "func Execute() {\n\tif err := rootCmd.Execute(); err != nil {\n\t\tfmt.Fprintln(os.Stderr, err)\n\t\tos.Exit(1)\n\t}\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "function:runChunk:18a20760",
+    "chunk_type": "function",
+    "start_line": 51,
+    "end_line": 76,
+    "code": "func runChunk(cmd *cobra.Command, args []string) error {\n\t// We'll gather all the resulting chunks in memory\n\tvar allChunks []chunker.Chunk\n\n\terr := walkWithGitIgnore(rootDir, func(path string, isDir bool) error {\n\t\tif isDir {\n\t\t\t// For directories, do nothing special\n\t\t\treturn nil\n\t\t}\n\t\t// For each file: call your actual chunking logic\n\t\tfileChunks, cErr := chunker.ProcessFile(path, forcedLang, fallbackLines)\n\t\tif cErr != nil {\n\t\t\t// If there's an error chunking, log and skip\n\t\t\tlog.Printf(\"Error chunking file %s: %v\\n\", path, cErr)\n\t\t\treturn nil\n\t\t}\n\t\tallChunks = append(allChunks, fileChunks...)\n\t\treturn nil\n\t})\n\tif err != nil {\n\t\treturn fmt.Errorf(\"error walking directory: %w\", err)\n\t}\n\n\t// Output the chunks\n\treturn writeChunks(allChunks)\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "function:writeChunks:b7c600fc",
+    "chunk_type": "function",
+    "start_line": 79,
+    "end_line": 94,
+    "code": "func writeChunks(chunks []chunker.Chunk) error {\n\tvar out *os.File\n\tif outputPath == \"-\" {\n\t\tout = os.Stdout\n\t} else {\n\t\tf, err := os.Create(outputPath)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\t\tdefer f.Close()\n\t\tout = f\n\t}\n\tenc := json.NewEncoder(out)\n\tenc.SetIndent(\"\", \"  \")\n\treturn enc.Encode(chunks)\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "type_decl_101_104:e3ebf1a1",
+    "chunk_type": "type",
+    "start_line": 101,
+    "end_line": 104,
+    "code": "type ignoreItem struct {\n\tig  *gitignore.GitIgnore\n\tdir string\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "type_decl_106_108:0960cd7d",
+    "chunk_type": "type",
+    "start_line": 106,
+    "end_line": 108,
+    "code": "type ignoreStack struct {\n\titems []ignoreItem\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "method:\u0026{2738 ignoreStack}:push:4fe66b7b",
+    "chunk_type": "method",
+    "start_line": 110,
+    "end_line": 112,
+    "code": "func (s *ignoreStack) push(item ignoreItem) {\n\ts.items = append(s.items, item)\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "method:\u0026{2820 ignoreStack}:pop:e4047c60",
+    "chunk_type": "method",
+    "start_line": 114,
+    "end_line": 118,
+    "code": "func (s *ignoreStack) pop() {\n\tif len(s.items) \u003e 0 {\n\t\ts.items = s.items[:len(s.items)-1]\n\t}\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "method:\u0026{2996 ignoreStack}:isIgnored:e5b23610",
+    "chunk_type": "method",
+    "start_line": 121,
+    "end_line": 134,
+    "code": "func (s *ignoreStack) isIgnored(path string) bool {\n\t// from top to bottom\n\tfor i := len(s.items) - 1; i \u003e= 0; i-- {\n\t\tbaseDir := s.items[i].dir\n\t\tig := s.items[i].ig\n\t\trel, err := filepath.Rel(baseDir, path)\n\t\tif err == nil {\n\t\t\tif ig.MatchesPath(rel) {\n\t\t\t\treturn true\n\t\t\t}\n\t\t}\n\t}\n\treturn false\n}"
+  },
+  {
+    "file": "cmd/root.go",
+    "chunk_id": "function:walkWithGitIgnore:d1b1fe63",
+    "chunk_type": "function",
+    "start_line": 137,
+    "end_line": 199,
+    "code": "func walkWithGitIgnore(dir string, fileCallback func(path string, isDir bool) error) error {\n\tvar stack ignoreStack\n\n\t// We'll define a nested function for DFS so we can push/pop per directory\n\tvar dfs func(string) error\n\n\tdfs = func(currentDir string) error {\n\t\t// Attempt to load a .gitignore in the currentDir\n\t\tgitignorePath := filepath.Join(currentDir, \".gitignore\")\n\t\tif info, err := os.Stat(gitignorePath); err == nil \u0026\u0026 !info.IsDir() {\n\t\t\t// compile it\n\t\t\tig, err := gitignore.CompileIgnoreFile(gitignorePath)\n\t\t\tif err != nil {\n\t\t\t\treturn fmt.Errorf(\"error compiling.gitignore in %s: %w\", currentDir, err)\n\t\t\t}\n\t\t\t// push onto stack\n\t\t\tstack.push(ignoreItem{\n\t\t\t\tig:  ig,\n\t\t\t\tdir: currentDir,\n\t\t\t})\n\t\t}\n\n\t\t// read dir entries\n\t\tentries, err := os.ReadDir(currentDir)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\n\t\tfor _, e := range entries {\n\t\t\tname := e.Name()\n\t\t\tpath := filepath.Join(currentDir, name)\n\t\t\tisDir := e.IsDir()\n\n\t\t\t// Check stack to see if ignored\n\t\t\tif stack.isIgnored(path) {\n\t\t\t\tcontinue\n\t\t\t}\n\n\t\t\t// Callback\n\t\t\tif err := fileCallback(path, isDir); err != nil {\n\t\t\t\treturn err\n\t\t\t}\n\n\t\t\t// Recurse if directory\n\t\t\tif isDir {\n\t\t\t\tif err := dfs(path); err != nil {\n\t\t\t\t\treturn err\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\t// If we pushed in this directory, pop it\n\t\tif len(stack.items) \u003e 0 {\n\t\t\ttop := stack.items[len(stack.items)-1]\n\t\t\tif top.dir == currentDir {\n\t\t\t\tstack.pop()\n\t\t\t}\n\t\t}\n\t\treturn nil\n\t}\n\n\treturn dfs(dir)\n}"
+  },
+  {
+    "file": "docker-compose.yml",
+    "chunk_id": "fallback_1_14:85d7fa14",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 14,
+    "code": "name: chunk\nservices:\n  devcontainer:\n    container_name: devcontainer\n    build:\n      context: .\n      dockerfile: .devcontainer/Dockerfile\n    volumes:\n      - ./:/workspace:rw\n    environment:\n      - AUTH0_DOMAIN=${AUTH0_DOMAIN}\n      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}\n    command: sleep infinity\n"
+  },
+  {
+    "file": "go.mod",
+    "chunk_id": "fallback_1_32:1e23855c",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 32,
+    "code": "module github.com/stream-ai/chunk\n\ngo 1.24.0\n\nrequire (\n\tgithub.com/spf13/cobra v1.9.1\n\tgithub.com/spf13/viper v1.19.0\n)\n\nrequire (\n\tgithub.com/fsnotify/fsnotify v1.7.0 // indirect\n\tgithub.com/hashicorp/hcl v1.0.0 // indirect\n\tgithub.com/inconshreveable/mousetrap v1.1.0 // indirect\n\tgithub.com/magiconair/properties v1.8.7 // indirect\n\tgithub.com/mitchellh/mapstructure v1.5.0 // indirect\n\tgithub.com/pelletier/go-toml/v2 v2.2.2 // indirect\n\tgithub.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect\n\tgithub.com/sagikazarmark/locafero v0.4.0 // indirect\n\tgithub.com/sagikazarmark/slog-shim v0.1.0 // indirect\n\tgithub.com/sourcegraph/conc v0.3.0 // indirect\n\tgithub.com/spf13/afero v1.11.0 // indirect\n\tgithub.com/spf13/cast v1.6.0 // indirect\n\tgithub.com/spf13/pflag v1.0.6 // indirect\n\tgithub.com/subosito/gotenv v1.6.0 // indirect\n\tgo.uber.org/atomic v1.9.0 // indirect\n\tgo.uber.org/multierr v1.9.0 // indirect\n\tgolang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect\n\tgolang.org/x/sys v0.18.0 // indirect\n\tgolang.org/x/text v0.14.0 // indirect\n\tgopkg.in/ini.v1 v1.67.0 // indirect\n\tgopkg.in/yaml.v3 v3.0.1 // indirect\n)"
+  },
+  {
+    "file": "go.sum",
+    "chunk_id": "fallback_1_80:a6d0fbe2",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 80,
+    "code": "github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=\ngithub.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=\ngithub.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=\ngithub.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\ngithub.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=\ngithub.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=\ngithub.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=\ngithub.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=\ngithub.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=\ngithub.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=\ngithub.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=\ngithub.com/hashicorp/hcl v1.0.0 h1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=\ngithub.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=\ngithub.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=\ngithub.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=\ngithub.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=\ngithub.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=\ngithub.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=\ngithub.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=\ngithub.com/magiconair/properties v1.8.7 h1:IeQXZAiQcpL9mgcAe1Nu6cX9LLw6ExEHKjN0VQdvPDY=\ngithub.com/magiconair/properties v1.8.7/go.mod h1:Dhd985XPs7jluiymwWYZ0G4Z61jb3vdS329zhj2hYo0=\ngithub.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=\ngithub.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=\ngithub.com/pelletier/go-toml/v2 v2.2.2 h1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=\ngithub.com/pelletier/go-toml/v2 v2.2.2/go.mod h1:1t835xjRzz80PqgE6HHgN2JOsmgYu/h4qDAS4n929Rs=\ngithub.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=\ngithub.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\ngithub.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=\ngithub.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZVejAe8=\ngithub.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=\ngithub.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=\ngithub.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 h1:OkMGxebDjyw0ULyrTYWeN0UNCCkmCWfjPnIA2W6oviI=\ngithub.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06/go.mod h1:+ePHsJ1keEjQtpvf9HHw0f4ZeJ0TLRsxhunSI2hYJSs=\ngithub.com/sagikazarmark/locafero v0.4.0 h1:HApY1R9zGo4DBgr7dqsTH/JJxLTTsOt7u6keLGt6kNQ=\ngithub.com/sagikazarmark/locafero v0.4.0/go.mod h1:Pe1W6UlPYUk/+wc/6KFhbORCfqzgYEpgQ3O5fPuL3H4=\ngithub.com/sagikazarmark/slog-shim v0.1.0 h1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=\ngithub.com/sagikazarmark/slog-shim v0.1.0/go.mod h1:SrcSrq8aKtyuqEI1uvTDTK1arOWRIczQRv+GVI1AkeQ=\ngithub.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=\ngithub.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=\ngithub.com/spf13/afero v1.11.0 h1:WJQKhtpdm3v2IzqG8VMqrr6Rf3UYpEF239Jy9wNepM8=\ngithub.com/spf13/afero v1.11.0/go.mod h1:GH9Y3pIexgf1MTIWtNGyogA5MwRIDXGUr+hbWNoBjkY=\ngithub.com/spf13/cast v1.6.0 h1:GEiTHELF+vaR5dhz3VqZfFSzZjYbgeKDpBxQVS4GYJ0=\ngithub.com/spf13/cast v1.6.0/go.mod h1:ancEpBxwJDODSW/UG4rDrAqiKolqNNh2DX3mk86cAdo=\ngithub.com/spf13/cobra v1.9.1 h1:CXSaggrXdbHK9CF+8ywj8Amf7PBRmPCOJugH954Nnlo=\ngithub.com/spf13/cobra v1.9.1/go.mod h1:nDyEzZ8ogv936Cinf6g1RU9MRY64Ir93oCnqb9wxYW0=\ngithub.com/spf13/pflag v1.0.6 h1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=\ngithub.com/spf13/pflag v1.0.6/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=\ngithub.com/spf13/viper v1.19.0 h1:RWq5SEjt8o25SROyN3z2OrDB9l7RPd3lwTWU8EcEdcI=\ngithub.com/spf13/viper v1.19.0/go.mod h1:GQUN9bilAbhU/jgc1bKs99f/suXKeUMct8Adx5+Ntkg=\ngithub.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=\ngithub.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=\ngithub.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=\ngithub.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=\ngithub.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=\ngithub.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=\ngithub.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=\ngithub.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=\ngithub.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=\ngithub.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=\ngithub.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=\ngithub.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=\ngithub.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=\ngo.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=\ngo.uber.org/atomic v1.9.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=\ngo.uber.org/multierr v1.9.0 h1:7fIwc/ZtS0q++VgcfqFDxSBZVv/Xo49/SYnDFupUwlI=\ngo.uber.org/multierr v1.9.0/go.mod h1:X2jQV1h+kxSjClGpnseKVIxpmcjrj7MNnI0bnlfKTVQ=\ngolang.org/x/exp v0.0.0-20230905200255-921286631fa9 h1:GoHiUyI/Tp2nVkLI2mCxVkOjsbSXD66ic0XW0js0R9g=\ngolang.org/x/exp v0.0.0-20230905200255-921286631fa9/go.mod h1:S2oDrQGGwySpoQPVqRShND87VCbxmc6bL1Yd2oYrm6k=\ngolang.org/x/sys v0.18.0 h1:DBdB3niSjOA/O0blCZBqDefyWNYveAYMNF1Wum0DYQ4=\ngolang.org/x/sys v0.18.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=\ngolang.org/x/text v0.14.0 h1:ScX5w1eTa3QqT8oi6+ziP7dTV1S2+ALU0bI+0zXKWiQ=\ngolang.org/x/text v0.14.0/go.mod h1:18ZOQIKpY8NJVqYksKHtTdi31H5itFRjB5/qKTNYzSU=\ngopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=\ngopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 h1:YR8cESwS4TdDjEe65xsg0ogRM/Nc3DYOhEAlW+xobZo=\ngopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=\ngopkg.in/ini.v1 v1.67.0 h1:Dgnx+6+nfE+IfzjUEISNeydPJh9AXNNsWbGP9KzCsOA=\ngopkg.in/ini.v1 v1.67.0/go.mod h1:pNLf8WUiyNEtQjuu5G5vTm06TEv9tsIgeAvK8hOrP4k=\ngopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=\ngopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\ngopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM="
+  },
+  {
+    "file": "internal/chunker/chunk.go",
+    "chunk_id": "0a7e6b83bedb593df7f4c285503c0bca0406ce71f5b2e62a5063207957483d63",
+    "chunk_type": "package",
+    "start_line": 1,
+    "end_line": 114,
+    "code": "package chunker\n\nimport (\n\t\"crypto/sha256\"\n\t\"encoding/hex\"\n\t\"path/filepath\"\n\t\"strings\"\n)\n\n// -----------------------------\n// 1. Chunk struct\n// -----------------------------\n\ntype Chunk struct {\n\tFilePath  string `json:\"file\"`\n\tChunkID   string `json:\"chunk_id\"`\n\tChunkType string `json:\"chunk_type\"` // e.g. \"function\", \"method\", \"fallback\"\n\tStartLine int    `json:\"start_line\"`\n\tEndLine   int    `json:\"end_line\"`\n\tCode      string `json:\"code\"`\n}\n\n// -----------------------------\n// 2. Shared Helpers\n// -----------------------------\n\n// IsLikelyBinaryByExtension checks a set of known binary extensions\nfunc IsLikelyBinaryByExtension(filename string) bool {\n\t// This map can be extended\n\tbinaryExt := map[string]bool{\n\t\t\"\":       true,\n\t\t\".dll\":   true,\n\t\t\".so\":    true,\n\t\t\".dylib\": true,\n\t\t\".a\":     true,\n\t\t\".o\":     true,\n\t\t\".exe\":   true,\n\t\t\".bin\":   true,\n\t\t\".png\":   true,\n\t\t\".jpg\":   true,\n\t\t\".gif\":   true,\n\t\t\".pdf\":   true,\n\t\t\".zip\":   true,\n\t\t\".tar\":   true,\n\t\t\".gz\":    true,\n\t\t\".bz2\":   true,\n\t\t\".xz\":    true,\n\t}\n\text := strings.ToLower(filepath.Ext(filename))\n\treturn binaryExt[ext]\n}\n\n// AutoDetectLanguage returns \"go\", \"ts\", \"react\", or \"fallback\",\n// based on file extension. This is simplistic; adapt as needed.\nfunc AutoDetectLanguage(path string) string {\n\text := strings.ToLower(filepath.Ext(path))\n\tswitch ext {\n\tcase \".go\":\n\t\treturn \"go\"\n\tcase \".ts\":\n\t\treturn \"ts\"\n\tcase \".tsx\":\n\t\t// You might also treat .tsx as \"ts\" if you prefer,\n\t\t// or always treat .tsx as React\n\t\treturn \"react\"\n\tdefault:\n\t\treturn \"fallback\"\n\t}\n}\n\n// For convenience, a helper to generate a stable chunk ID\n// from a chunk's file path + code content. If path/contents\n// are unchanged, the ID remains the same. If either changes,\n// the ID changes.\nfunc makeChunkID(filePath, code string) string {\n\tcombined := filePath + \"\\n\" + code\n\tsum := sha256.Sum256([]byte(combined))\n\treturn hex.EncodeToString(sum[:])\n}\n\n// -----------------------------\n// 3. Main Entry: ProcessFile\n// -----------------------------\n\n// ProcessFile is the primary entry point for chunking a single file.\n//\n// 1. Skips known-binary files\n// 2. If forcedLang != \"\", uses that language\n// 3. Otherwise calls AutoDetectLanguage\n// 4. Dispatches to chunker for \"go\", \"ts\", \"react\", or line-based fallback\nfunc ProcessFile(path string, forcedLang string, fallbackLines int) ([]Chunk, error) {\n\t// 1) Skip known-binary\n\tif IsLikelyBinaryByExtension(path) {\n\t\t// Return no chunks\n\t\treturn nil, nil\n\t}\n\n\t// 2) Language\n\tlang := forcedLang\n\tif lang == \"\" {\n\t\tlang = AutoDetectLanguage(path)\n\t}\n\n\t// 3) Dispatch\n\tswitch lang {\n\tcase \"go\":\n\t\treturn ChunkGoFile(path)\n\tcase \"ts\", \"react\":\n\t\treturn ChunkTypeScriptFile(path, lang)\n\tdefault:\n\t\treturn ChunkFallback(path, fallbackLines)\n\t}\n}\n"
+  },
+  {
+    "file": "internal/chunker/chunk.go",
+    "chunk_id": "import_decl_3_8:b0891a0f",
+    "chunk_type": "import",
+    "start_line": 3,
+    "end_line": 8,
+    "code": "import (\n\t\"crypto/sha256\"\n\t\"encoding/hex\"\n\t\"path/filepath\"\n\t\"strings\"\n)"
+  },
+  {
+    "file": "internal/chunker/chunk.go",
+    "chunk_id": "type_decl_14_21:819e8d8a",
+    "chunk_type": "type",
+    "start_line": 14,
+    "end_line": 21,
+    "code": "type Chunk struct {\n\tFilePath  string `json:\"file\"`\n\tChunkID   string `json:\"chunk_id\"`\n\tChunkType string `json:\"chunk_type\"` // e.g. \"function\", \"method\", \"fallback\"\n\tStartLine int    `json:\"start_line\"`\n\tEndLine   int    `json:\"end_line\"`\n\tCode      string `json:\"code\"`\n}"
+  },
+  {
+    "file": "internal/chunker/chunk.go",
+    "chunk_id": "function:IsLikelyBinaryByExtension:054c56a2",
+    "chunk_type": "function",
+    "start_line": 28,
+    "end_line": 51,
+    "code": "func IsLikelyBinaryByExtension(filename string) bool {\n\t// This map can be extended\n\tbinaryExt := map[string]bool{\n\t\t\"\":       true,\n\t\t\".dll\":   true,\n\t\t\".so\":    true,\n\t\t\".dylib\": true,\n\t\t\".a\":     true,\n\t\t\".o\":     true,\n\t\t\".exe\":   true,\n\t\t\".bin\":   true,\n\t\t\".png\":   true,\n\t\t\".jpg\":   true,\n\t\t\".gif\":   true,\n\t\t\".pdf\":   true,\n\t\t\".zip\":   true,\n\t\t\".tar\":   true,\n\t\t\".gz\":    true,\n\t\t\".bz2\":   true,\n\t\t\".xz\":    true,\n\t}\n\text := strings.ToLower(filepath.Ext(filename))\n\treturn binaryExt[ext]\n}"
+  },
+  {
+    "file": "internal/chunker/chunk.go",
+    "chunk_id": "function:AutoDetectLanguage:38ce2db8",
+    "chunk_type": "function",
+    "start_line": 55,
+    "end_line": 69,
+    "code": "func AutoDetectLanguage(path string) string {\n\text := strings.ToLower(filepath.Ext(path))\n\tswitch ext {\n\tcase \".go\":\n\t\treturn \"go\"\n\tcase \".ts\":\n\t\treturn \"ts\"\n\tcase \".tsx\":\n\t\t// You might also treat .tsx as \"ts\" if you prefer,\n\t\t// or always treat .tsx as React\n\t\treturn \"react\"\n\tdefault:\n\t\treturn \"fallback\"\n\t}\n}"
+  },
+  {
+    "file": "internal/chunker/chunk.go",
+    "chunk_id": "function:makeChunkID:f1d92174",
+    "chunk_type": "function",
+    "start_line": 75,
+    "end_line": 79,
+    "code": "func makeChunkID(filePath, code string) string {\n\tcombined := filePath + \"\\n\" + code\n\tsum := sha256.Sum256([]byte(combined))\n\treturn hex.EncodeToString(sum[:])\n}"
+  },
+  {
+    "file": "internal/chunker/chunk.go",
+    "chunk_id": "function:ProcessFile:63bed9b8",
+    "chunk_type": "function",
+    "start_line": 91,
+    "end_line": 113,
+    "code": "func ProcessFile(path string, forcedLang string, fallbackLines int) ([]Chunk, error) {\n\t// 1) Skip known-binary\n\tif IsLikelyBinaryByExtension(path) {\n\t\t// Return no chunks\n\t\treturn nil, nil\n\t}\n\n\t// 2) Language\n\tlang := forcedLang\n\tif lang == \"\" {\n\t\tlang = AutoDetectLanguage(path)\n\t}\n\n\t// 3) Dispatch\n\tswitch lang {\n\tcase \"go\":\n\t\treturn ChunkGoFile(path)\n\tcase \"ts\", \"react\":\n\t\treturn ChunkTypeScriptFile(path, lang)\n\tdefault:\n\t\treturn ChunkFallback(path, fallbackLines)\n\t}\n}"
+  },
+  {
+    "file": "internal/chunker/fallback.go",
+    "chunk_id": "03933c819f2c779299e93bf5d6f894f1d5d3755302f77723a2e2dbf5eb7f41ed",
+    "chunk_type": "package",
+    "start_line": 1,
+    "end_line": 63,
+    "code": "package chunker\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"strings\"\n)\n\nfunc ChunkFallback(filePath string, linesPerChunk int) ([]Chunk, error) {\n\tf, err := os.Open(filePath)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tdefer f.Close()\n\n\tvar chunks []Chunk\n\tvar currentLines []string\n\tcurrentStartLine := 1\n\n\tscanner := bufio.NewScanner(f)\n\tlineCount := 0\n\n\tfor scanner.Scan() {\n\t\tlineCount++\n\t\tcurrentLines = append(currentLines, scanner.Text())\n\n\t\tif len(currentLines) \u003e= linesPerChunk {\n\t\t\tcode := strings.Join(currentLines, \"\\n\")\n\t\t\thashedID := makeChunkID(filePath, code)\n\t\t\tchunkID := fmt.Sprintf(\"fallback_%d_%d:%s\", currentStartLine, lineCount, hashedID[:8])\n\n\t\t\tchunks = append(chunks, Chunk{\n\t\t\t\tFilePath:  filePath,\n\t\t\t\tChunkID:   chunkID,\n\t\t\t\tChunkType: \"fallback\",\n\t\t\t\tStartLine: currentStartLine,\n\t\t\t\tEndLine:   lineCount,\n\t\t\t\tCode:      code,\n\t\t\t})\n\t\t\tcurrentStartLine = lineCount + 1\n\t\t\tcurrentLines = nil\n\t\t}\n\t}\n\t// remainder\n\tif len(currentLines) \u003e 0 {\n\t\tcode := strings.Join(currentLines, \"\\n\")\n\t\thashedID := makeChunkID(filePath, code)\n\t\tchunkID := fmt.Sprintf(\"fallback_%d_%d:%s\", currentStartLine, lineCount, hashedID[:8])\n\n\t\tchunks = append(chunks, Chunk{\n\t\t\tFilePath:  filePath,\n\t\t\tChunkID:   chunkID,\n\t\t\tChunkType: \"fallback\",\n\t\t\tStartLine: currentStartLine,\n\t\t\tEndLine:   lineCount,\n\t\t\tCode:      code,\n\t\t})\n\t}\n\n\treturn chunks, nil\n}\n"
+  },
+  {
+    "file": "internal/chunker/fallback.go",
+    "chunk_id": "import_decl_3_8:dcd92cd0",
+    "chunk_type": "import",
+    "start_line": 3,
+    "end_line": 8,
+    "code": "import (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"strings\"\n)"
+  },
+  {
+    "file": "internal/chunker/fallback.go",
+    "chunk_id": "function:ChunkFallback:6560012b",
+    "chunk_type": "function",
+    "start_line": 10,
+    "end_line": 62,
+    "code": "func ChunkFallback(filePath string, linesPerChunk int) ([]Chunk, error) {\n\tf, err := os.Open(filePath)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tdefer f.Close()\n\n\tvar chunks []Chunk\n\tvar currentLines []string\n\tcurrentStartLine := 1\n\n\tscanner := bufio.NewScanner(f)\n\tlineCount := 0\n\n\tfor scanner.Scan() {\n\t\tlineCount++\n\t\tcurrentLines = append(currentLines, scanner.Text())\n\n\t\tif len(currentLines) \u003e= linesPerChunk {\n\t\t\tcode := strings.Join(currentLines, \"\\n\")\n\t\t\thashedID := makeChunkID(filePath, code)\n\t\t\tchunkID := fmt.Sprintf(\"fallback_%d_%d:%s\", currentStartLine, lineCount, hashedID[:8])\n\n\t\t\tchunks = append(chunks, Chunk{\n\t\t\t\tFilePath:  filePath,\n\t\t\t\tChunkID:   chunkID,\n\t\t\t\tChunkType: \"fallback\",\n\t\t\t\tStartLine: currentStartLine,\n\t\t\t\tEndLine:   lineCount,\n\t\t\t\tCode:      code,\n\t\t\t})\n\t\t\tcurrentStartLine = lineCount + 1\n\t\t\tcurrentLines = nil\n\t\t}\n\t}\n\t// remainder\n\tif len(currentLines) \u003e 0 {\n\t\tcode := strings.Join(currentLines, \"\\n\")\n\t\thashedID := makeChunkID(filePath, code)\n\t\tchunkID := fmt.Sprintf(\"fallback_%d_%d:%s\", currentStartLine, lineCount, hashedID[:8])\n\n\t\tchunks = append(chunks, Chunk{\n\t\t\tFilePath:  filePath,\n\t\t\tChunkID:   chunkID,\n\t\t\tChunkType: \"fallback\",\n\t\t\tStartLine: currentStartLine,\n\t\t\tEndLine:   lineCount,\n\t\t\tCode:      code,\n\t\t})\n\t}\n\n\treturn chunks, nil\n}"
+  },
+  {
+    "file": "internal/chunker/go.go",
+    "chunk_id": "c958345cd940ed83a104f597afb606412fed287f66d80eee46d117dbea514476",
+    "chunk_type": "package",
+    "start_line": 1,
+    "end_line": 113,
+    "code": "package chunker\n\nimport (\n\t\"fmt\"\n\t\"go/ast\"\n\t\"go/parser\"\n\t\"go/token\"\n\t\"log\"\n\t\"os\"\n)\n\n// ChunkGoFile parses a Go file, chunking by package, struct, func, etc.\nfunc ChunkGoFile(filepath string) ([]Chunk, error) {\n\tsource, err := os.ReadFile(filepath)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\tfset := token.NewFileSet()\n\tfile, err := parser.ParseFile(fset, filepath, source, parser.ParseComments)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\tvar chunks []Chunk\n\n\t// Optionally, chunk for entire package\n\tif file.Name != nil {\n\t\t// pkgName := file.Name.Name\n\t\tlog.Printf(\"Chunking Go Package: %s\\n\", file.Name.Name)\n\t\tcode := string(source)\n\t\tchunkID := makeChunkID(filepath, code)\n\n\t\tpkgChunk := Chunk{\n\t\t\tFilePath:  filepath,\n\t\t\tChunkID:   chunkID, // stable if package contents + file path unchanged\n\t\t\tChunkType: \"package\",\n\t\t\tCode:      code,\n\t\t\tStartLine: 1,\n\t\t\tEndLine:   countLines(source),\n\t\t}\n\t\tchunks = append(chunks, pkgChunk)\n\t}\n\n\t// For top-level declarations\n\tfor _, decl := range file.Decls {\n\t\tswitch d := decl.(type) {\n\t\tcase *ast.FuncDecl:\n\t\t\tc := extractFuncChunk(d, filepath, fset, source)\n\t\t\tchunks = append(chunks, c)\n\t\tcase *ast.GenDecl:\n\t\t\tgenChunks := extractGenDeclChunks(d, filepath, fset, source)\n\t\t\tchunks = append(chunks, genChunks...)\n\t\t}\n\t}\n\n\treturn chunks, nil\n}\n\nfunc extractFuncChunk(fn *ast.FuncDecl, filePath string, fset *token.FileSet, source []byte) Chunk {\n\tstart := fset.Position(fn.Pos())\n\tend := fset.Position(fn.End())\n\tcode := extractSource(source, start.Offset, end.Offset)\n\n\tvar chunkID, chunkType string\n\tif fn.Recv != nil \u0026\u0026 len(fn.Recv.List) \u003e 0 {\n\t\t// method\n\t\trecv := nodeToString(fn.Recv.List[0].Type)\n\t\tchunkType = \"method\"\n\t\tchunkID = fmt.Sprintf(\"%s:%s:%s\", chunkType, recv, fn.Name.Name)\n\t} else {\n\t\tchunkType = \"function\"\n\t\tchunkID = fmt.Sprintf(\"%s:%s\", chunkType, fn.Name.Name)\n\t}\n\n\t// Add path+code-based hashing to chunkID if you want the ID to reflect content changes:\n\thashedID := makeChunkID(filePath, code)\n\tchunkID = chunkID + \":\" + hashedID[:8] // e.g. short prefix to disambiguate\n\n\treturn Chunk{\n\t\tFilePath:  filePath,\n\t\tChunkID:   chunkID,\n\t\tChunkType: chunkType,\n\t\tStartLine: start.Line,\n\t\tEndLine:   end.Line,\n\t\tCode:      code,\n\t}\n}\n\nfunc extractGenDeclChunks(gd *ast.GenDecl, filePath string, fset *token.FileSet, source []byte) []Chunk {\n\tvar results []Chunk\n\tstart := fset.Position(gd.Pos())\n\tend := fset.Position(gd.End())\n\tcode := extractSource(source, start.Offset, end.Offset)\n\n\tchunkType := gd.Tok.String() // \"import\", \"var\", \"const\", \"type\"\n\tbaseID := fmt.Sprintf(\"%s_decl_%d_%d\", chunkType, start.Line, end.Line)\n\n\thashedID := makeChunkID(filePath, code)\n\tfinalID := baseID + \":\" + hashedID[:8]\n\n\tc := Chunk{\n\t\tFilePath:  filePath,\n\t\tChunkID:   finalID,\n\t\tChunkType: chunkType,\n\t\tStartLine: start.Line,\n\t\tEndLine:   end.Line,\n\t\tCode:      code,\n\t}\n\tresults = append(results, c)\n\treturn results\n}\n"
+  },
+  {
+    "file": "internal/chunker/go.go",
+    "chunk_id": "import_decl_3_10:595c2d9d",
+    "chunk_type": "import",
+    "start_line": 3,
+    "end_line": 10,
+    "code": "import (\n\t\"fmt\"\n\t\"go/ast\"\n\t\"go/parser\"\n\t\"go/token\"\n\t\"log\"\n\t\"os\"\n)"
+  },
+  {
+    "file": "internal/chunker/go.go",
+    "chunk_id": "function:ChunkGoFile:6aaa5ad6",
+    "chunk_type": "function",
+    "start_line": 13,
+    "end_line": 58,
+    "code": "func ChunkGoFile(filepath string) ([]Chunk, error) {\n\tsource, err := os.ReadFile(filepath)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\tfset := token.NewFileSet()\n\tfile, err := parser.ParseFile(fset, filepath, source, parser.ParseComments)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\tvar chunks []Chunk\n\n\t// Optionally, chunk for entire package\n\tif file.Name != nil {\n\t\t// pkgName := file.Name.Name\n\t\tlog.Printf(\"Chunking Go Package: %s\\n\", file.Name.Name)\n\t\tcode := string(source)\n\t\tchunkID := makeChunkID(filepath, code)\n\n\t\tpkgChunk := Chunk{\n\t\t\tFilePath:  filepath,\n\t\t\tChunkID:   chunkID, // stable if package contents + file path unchanged\n\t\t\tChunkType: \"package\",\n\t\t\tCode:      code,\n\t\t\tStartLine: 1,\n\t\t\tEndLine:   countLines(source),\n\t\t}\n\t\tchunks = append(chunks, pkgChunk)\n\t}\n\n\t// For top-level declarations\n\tfor _, decl := range file.Decls {\n\t\tswitch d := decl.(type) {\n\t\tcase *ast.FuncDecl:\n\t\t\tc := extractFuncChunk(d, filepath, fset, source)\n\t\t\tchunks = append(chunks, c)\n\t\tcase *ast.GenDecl:\n\t\t\tgenChunks := extractGenDeclChunks(d, filepath, fset, source)\n\t\t\tchunks = append(chunks, genChunks...)\n\t\t}\n\t}\n\n\treturn chunks, nil\n}"
+  },
+  {
+    "file": "internal/chunker/go.go",
+    "chunk_id": "function:extractFuncChunk:d43279f5",
+    "chunk_type": "function",
+    "start_line": 60,
+    "end_line": 88,
+    "code": "func extractFuncChunk(fn *ast.FuncDecl, filePath string, fset *token.FileSet, source []byte) Chunk {\n\tstart := fset.Position(fn.Pos())\n\tend := fset.Position(fn.End())\n\tcode := extractSource(source, start.Offset, end.Offset)\n\n\tvar chunkID, chunkType string\n\tif fn.Recv != nil \u0026\u0026 len(fn.Recv.List) \u003e 0 {\n\t\t// method\n\t\trecv := nodeToString(fn.Recv.List[0].Type)\n\t\tchunkType = \"method\"\n\t\tchunkID = fmt.Sprintf(\"%s:%s:%s\", chunkType, recv, fn.Name.Name)\n\t} else {\n\t\tchunkType = \"function\"\n\t\tchunkID = fmt.Sprintf(\"%s:%s\", chunkType, fn.Name.Name)\n\t}\n\n\t// Add path+code-based hashing to chunkID if you want the ID to reflect content changes:\n\thashedID := makeChunkID(filePath, code)\n\tchunkID = chunkID + \":\" + hashedID[:8] // e.g. short prefix to disambiguate\n\n\treturn Chunk{\n\t\tFilePath:  filePath,\n\t\tChunkID:   chunkID,\n\t\tChunkType: chunkType,\n\t\tStartLine: start.Line,\n\t\tEndLine:   end.Line,\n\t\tCode:      code,\n\t}\n}"
+  },
+  {
+    "file": "internal/chunker/go.go",
+    "chunk_id": "function:extractGenDeclChunks:e7290181",
+    "chunk_type": "function",
+    "start_line": 90,
+    "end_line": 112,
+    "code": "func extractGenDeclChunks(gd *ast.GenDecl, filePath string, fset *token.FileSet, source []byte) []Chunk {\n\tvar results []Chunk\n\tstart := fset.Position(gd.Pos())\n\tend := fset.Position(gd.End())\n\tcode := extractSource(source, start.Offset, end.Offset)\n\n\tchunkType := gd.Tok.String() // \"import\", \"var\", \"const\", \"type\"\n\tbaseID := fmt.Sprintf(\"%s_decl_%d_%d\", chunkType, start.Line, end.Line)\n\n\thashedID := makeChunkID(filePath, code)\n\tfinalID := baseID + \":\" + hashedID[:8]\n\n\tc := Chunk{\n\t\tFilePath:  filePath,\n\t\tChunkID:   finalID,\n\t\tChunkType: chunkType,\n\t\tStartLine: start.Line,\n\t\tEndLine:   end.Line,\n\t\tCode:      code,\n\t}\n\tresults = append(results, c)\n\treturn results\n}"
+  },
+  {
+    "file": "internal/chunker/id.go",
+    "chunk_id": "6e4d144930e57b2246e8e346d6d11f3534fd245435372504fd3b25818ed8d23c",
+    "chunk_type": "package",
+    "start_line": 1,
+    "end_line": 24,
+    "code": "package chunker\n\nimport (\n\t\"crypto/sha256\"\n\t\"encoding/hex\"\n\t\"path/filepath\"\n)\n\nfunc GenerateChunkID(projectRoot, absFilePath string, chunkContent string) (string, error) {\n\t// 1. relative path from project root\n\trelPath, err := filepath.Rel(projectRoot, absFilePath)\n\tif err != nil {\n\t\treturn \"\", err\n\t}\n\n\t// 2. combine\n\ttoHash := relPath + \"\\n\" + chunkContent\n\n\t// 3. compute SHA-256\n\tsum := sha256.Sum256([]byte(toHash))\n\t// Return hex string (could return short prefix if desired)\n\treturn hex.EncodeToString(sum[:]), nil\n}\n"
+  },
+  {
+    "file": "internal/chunker/id.go",
+    "chunk_id": "import_decl_3_7:837f80c3",
+    "chunk_type": "import",
+    "start_line": 3,
+    "end_line": 7,
+    "code": "import (\n\t\"crypto/sha256\"\n\t\"encoding/hex\"\n\t\"path/filepath\"\n)"
+  },
+  {
+    "file": "internal/chunker/id.go",
+    "chunk_id": "function:GenerateChunkID:31ce4e35",
+    "chunk_type": "function",
+    "start_line": 9,
+    "end_line": 23,
+    "code": "func GenerateChunkID(projectRoot, absFilePath string, chunkContent string) (string, error) {\n\t// 1. relative path from project root\n\trelPath, err := filepath.Rel(projectRoot, absFilePath)\n\tif err != nil {\n\t\treturn \"\", err\n\t}\n\n\t// 2. combine\n\ttoHash := relPath + \"\\n\" + chunkContent\n\n\t// 3. compute SHA-256\n\tsum := sha256.Sum256([]byte(toHash))\n\t// Return hex string (could return short prefix if desired)\n\treturn hex.EncodeToString(sum[:]), nil\n}"
+  },
+  {
+    "file": "internal/chunker/typescript.go",
+    "chunk_id": "5d1aa2b5f817adeacff5b01fd57d9335307b5e9082f913e85cf83e690fbb94ee",
+    "chunk_type": "package",
+    "start_line": 1,
+    "end_line": 39,
+    "code": "package chunker\n\nimport (\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"os/exec\"\n)\n\n// -----------------------------\n// 5. TypeScript/React Chunker\n// -----------------------------\n\n// ChunkTypeScriptFile calls an external script (e.g. \"tsparser.ts\")\n// that returns JSON describing chunk objects. Adjust as needed.\nfunc ChunkTypeScriptFile(filepath, lang string) ([]Chunk, error) {\n\t// If you want to detect React, pass additional flags to the script, etc.\n\t// We'll do a simple example that just calls \"tsparser.ts\" with the file path.\n\tcmd := exec.Command(\"npx\", \"ts-node\", \"tsparser/tsparser.ts\", filepath)\n\t// ^ \"npx ts-node tsparser.ts \u003cfilepath\u003e\" requires that tsparser.ts is in the same directory,\n\t// or you can do an absolute path to tsparser.ts if needed.\n\n\t// If tsparser is in a separate folder, e.g. chunk/tsparser/tsparser.ts\n\t// you'd do something like:\n\t// cmd.Dir = \"/workspace/chunk/tsparser\"\n\n\tout, err := cmd.CombinedOutput()\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"ts1 parsing failed: %v\\n%s\", err, string(out))\n\t}\n\n\t// 'out' should be JSON array of chunk objects\n\tvar chunks []Chunk\n\tif err := json.Unmarshal(out, \u0026chunks); err != nil {\n\t\treturn nil, fmt.Errorf(\"invalid JSON from tsparser: %v\\n%s\", err, string(out))\n\t}\n\n\treturn chunks, nil\n}\n"
+  },
+  {
+    "file": "internal/chunker/typescript.go",
+    "chunk_id": "import_decl_3_7:abc637ef",
+    "chunk_type": "import",
+    "start_line": 3,
+    "end_line": 7,
+    "code": "import (\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"os/exec\"\n)"
+  },
+  {
+    "file": "internal/chunker/typescript.go",
+    "chunk_id": "function:ChunkTypeScriptFile:bfb943bc",
+    "chunk_type": "function",
+    "start_line": 15,
+    "end_line": 38,
+    "code": "func ChunkTypeScriptFile(filepath, lang string) ([]Chunk, error) {\n\t// If you want to detect React, pass additional flags to the script, etc.\n\t// We'll do a simple example that just calls \"tsparser.ts\" with the file path.\n\tcmd := exec.Command(\"npx\", \"ts-node\", \"tsparser/tsparser.ts\", filepath)\n\t// ^ \"npx ts-node tsparser.ts \u003cfilepath\u003e\" requires that tsparser.ts is in the same directory,\n\t// or you can do an absolute path to tsparser.ts if needed.\n\n\t// If tsparser is in a separate folder, e.g. chunk/tsparser/tsparser.ts\n\t// you'd do something like:\n\t// cmd.Dir = \"/workspace/chunk/tsparser\"\n\n\tout, err := cmd.CombinedOutput()\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"ts1 parsing failed: %v\\n%s\", err, string(out))\n\t}\n\n\t// 'out' should be JSON array of chunk objects\n\tvar chunks []Chunk\n\tif err := json.Unmarshal(out, \u0026chunks); err != nil {\n\t\treturn nil, fmt.Errorf(\"invalid JSON from tsparser: %v\\n%s\", err, string(out))\n\t}\n\n\treturn chunks, nil\n}"
+  },
+  {
+    "file": "internal/chunker/util.go",
+    "chunk_id": "47607f22039c0ff96e239d9dc00daa3f3ee436d3c9854701731cb64bb58ca36c",
+    "chunk_type": "package",
+    "start_line": 1,
+    "end_line": 31,
+    "code": "package chunker\n\nimport (\n\t\"fmt\"\n\t\"go/ast\"\n\t\"strings\"\n)\n\n// -----------------------------\n// 7. Internal Utility Functions\n// -----------------------------\n\nfunc extractSource(source []byte, start, end int) string {\n\tif start \u003c 0 {\n\t\tstart = 0\n\t}\n\tif end \u003e len(source) {\n\t\tend = len(source)\n\t}\n\treturn string(source[start:end])\n}\n\nfunc nodeToString(expr ast.Expr) string {\n\t// E.g., \"*MyStruct\", \"MyStruct\"\n\treturn strings.TrimSpace(fmt.Sprintf(\"%v\", expr))\n}\n\nfunc countLines(data []byte) int {\n\treturn strings.Count(string(data), \"\\n\") + 1\n}\n"
+  },
+  {
+    "file": "internal/chunker/util.go",
+    "chunk_id": "import_decl_3_7:14a7fe69",
+    "chunk_type": "import",
+    "start_line": 3,
+    "end_line": 7,
+    "code": "import (\n\t\"fmt\"\n\t\"go/ast\"\n\t\"strings\"\n)"
+  },
+  {
+    "file": "internal/chunker/util.go",
+    "chunk_id": "function:extractSource:5970faf4",
+    "chunk_type": "function",
+    "start_line": 13,
+    "end_line": 21,
+    "code": "func extractSource(source []byte, start, end int) string {\n\tif start \u003c 0 {\n\t\tstart = 0\n\t}\n\tif end \u003e len(source) {\n\t\tend = len(source)\n\t}\n\treturn string(source[start:end])\n}"
+  },
+  {
+    "file": "internal/chunker/util.go",
+    "chunk_id": "function:nodeToString:882de058",
+    "chunk_type": "function",
+    "start_line": 23,
+    "end_line": 26,
+    "code": "func nodeToString(expr ast.Expr) string {\n\t// E.g., \"*MyStruct\", \"MyStruct\"\n\treturn strings.TrimSpace(fmt.Sprintf(\"%v\", expr))\n}"
+  },
+  {
+    "file": "internal/chunker/util.go",
+    "chunk_id": "function:countLines:e9f8ed12",
+    "chunk_type": "function",
+    "start_line": 28,
+    "end_line": 30,
+    "code": "func countLines(data []byte) int {\n\treturn strings.Count(string(data), \"\\n\") + 1\n}"
+  },
+  {
+    "file": "main.go",
+    "chunk_id": "6ad0478137417227a61186f12fb37ce6e5753ce5da2a8a70f4a48f759fa3e4e1",
+    "chunk_type": "package",
+    "start_line": 1,
+    "end_line": 10,
+    "code": "package main\n\nimport (\n\t\"github.com/stream-ai/chunk/cmd\"\n)\n\nfunc main() {\n\tcmd.Execute()\n}\n"
+  },
+  {
+    "file": "main.go",
+    "chunk_id": "import_decl_3_5:5de1f63f",
+    "chunk_type": "import",
+    "start_line": 3,
+    "end_line": 5,
+    "code": "import (\n\t\"github.com/stream-ai/chunk/cmd\"\n)"
+  },
+  {
+    "file": "main.go",
+    "chunk_id": "function:main:3c9ec848",
+    "chunk_type": "function",
+    "start_line": 7,
+    "end_line": 9,
+    "code": "func main() {\n\tcmd.Execute()\n}"
+  },
+  {
+    "file": "tsparser/package-lock.json",
+    "chunk_id": "fallback_1_200:bd467287",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 200,
+    "code": "{\n    \"name\": \"tsparser\",\n    \"version\": \"1.0.0\",\n    \"lockfileVersion\": 3,\n    \"requires\": true,\n    \"packages\": {\n        \"\": {\n            \"name\": \"tsparser\",\n            \"version\": \"1.0.0\",\n            \"devDependencies\": {\n                \"@types/node\": \"^22.13.5\",\n                \"ts-node\": \"^10.0.0\",\n                \"typescript\": \"^5.7.3\"\n            }\n        },\n        \"node_modules/@cspotcode/source-map-support\": {\n            \"version\": \"0.8.1\",\n            \"resolved\": \"https://registry.npmjs.org/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz\",\n            \"integrity\": \"sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==\",\n            \"dev\": true,\n            \"license\": \"MIT\",\n            \"dependencies\": {\n                \"@jridgewell/trace-mapping\": \"0.3.9\"\n            },\n            \"engines\": {\n                \"node\": \"\u003e=12\"\n            }\n        },\n        \"node_modules/@jridgewell/resolve-uri\": {\n            \"version\": \"3.1.2\",\n            \"resolved\": \"https://registry.npmjs.org/@jridgewell/resolve-uri/-/resolve-uri-3.1.2.tgz\",\n            \"integrity\": \"sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==\",\n            \"dev\": true,\n            \"license\": \"MIT\",\n            \"engines\": {\n                \"node\": \"\u003e=6.0.0\"\n            }\n        },\n        \"node_modules/@jridgewell/sourcemap-codec\": {\n            \"version\": \"1.5.0\",\n            \"resolved\": \"https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.5.0.tgz\",\n            \"integrity\": \"sha512-gv3ZRaISU3fjPAgNsriBRqGWQL6quFx04YMPW/zD8XMLsU32mhCCbfbO6KZFLjvYpCZ8zyDEgqsgf+PwPaM7GQ==\",\n            \"dev\": true,\n            \"license\": \"MIT\"\n        },\n        \"node_modules/@jridgewell/trace-mapping\": {\n            \"version\": \"0.3.9\",\n            \"resolved\": \"https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.9.tgz\",\n            \"integrity\": \"sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==\",\n            \"dev\": true,\n            \"license\": \"MIT\",\n            \"dependencies\": {\n                \"@jridgewell/resolve-uri\": \"^3.0.3\",\n                \"@jridgewell/sourcemap-codec\": \"^1.4.10\"\n            }\n        },\n        \"node_modules/@tsconfig/node10\": {\n            \"version\": \"1.0.11\",\n            \"resolved\": \"https://registry.npmjs.org/@tsconfig/node10/-/node10-1.0.11.tgz\",\n            \"integrity\": \"sha512-DcRjDCujK/kCk/cUe8Xz8ZSpm8mS3mNNpta+jGCA6USEDfktlNvm1+IuZ9eTcDbNk41BHwpHHeW+N1lKCz4zOw==\",\n            \"dev\": true,\n            \"license\": \"MIT\"\n        },\n        \"node_modules/@tsconfig/node12\": {\n            \"version\": \"1.0.11\",\n            \"resolved\": \"https://registry.npmjs.org/@tsconfig/node12/-/node12-1.0.11.tgz\",\n            \"integrity\": \"sha512-cqefuRsh12pWyGsIoBKJA9luFu3mRxCA+ORZvA4ktLSzIuCUtWVxGIuXigEwO5/ywWFMZ2QEGKWvkZG1zDMTag==\",\n            \"dev\": true,\n            \"license\": \"MIT\"\n        },\n        \"node_modules/@tsconfig/node14\": {\n            \"version\": \"1.0.3\",\n            \"resolved\": \"https://registry.npmjs.org/@tsconfig/node14/-/node14-1.0.3.tgz\",\n            \"integrity\": \"sha512-ysT8mhdixWK6Hw3i1V2AeRqZ5WfXg1G43mqoYlM2nc6388Fq5jcXyr5mRsqViLx/GJYdoL0bfXD8nmF+Zn/Iow==\",\n            \"dev\": true,\n            \"license\": \"MIT\"\n        },\n        \"node_modules/@tsconfig/node16\": {\n            \"version\": \"1.0.4\",\n            \"resolved\": \"https://registry.npmjs.org/@tsconfig/node16/-/node16-1.0.4.tgz\",\n            \"integrity\": \"sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==\",\n            \"dev\": true,\n            \"license\": \"MIT\"\n        },\n        \"node_modules/@types/node\": {\n            \"version\": \"22.13.5\",\n            \"resolved\": \"https://registry.npmjs.org/@types/node/-/node-22.13.5.tgz\",\n            \"integrity\": \"sha512-+lTU0PxZXn0Dr1NBtC7Y8cR21AJr87dLLU953CWA6pMxxv/UDc7jYAY90upcrie1nRcD6XNG5HOYEDtgW5TxAg==\",\n            \"dev\": true,\n            \"license\": \"MIT\",\n            \"dependencies\": {\n                \"undici-types\": \"~6.20.0\"\n            }\n        },\n        \"node_modules/acorn\": {\n            \"version\": \"8.14.0\",\n            \"resolved\": \"https://registry.npmjs.org/acorn/-/acorn-8.14.0.tgz\",\n            \"integrity\": \"sha512-cl669nCJTZBsL97OF4kUQm5g5hC2uihk0NxY3WENAC0TYdILVkAyHymAntgxGkl7K+t0cXIrH5siy5S4XkFycA==\",\n            \"dev\": true,\n            \"license\": \"MIT\",\n            \"bin\": {\n                \"acorn\": \"bin/acorn\"\n            },\n            \"engines\": {\n                \"node\": \"\u003e=0.4.0\"\n            }\n        },\n        \"node_modules/acorn-walk\": {\n            \"version\": \"8.3.4\",\n            \"resolved\": \"https://registry.npmjs.org/acorn-walk/-/acorn-walk-8.3.4.tgz\",\n            \"integrity\": \"sha512-ueEepnujpqee2o5aIYnvHU6C0A42MNdsIDeqy5BydrkuC5R1ZuUFnm27EeFJGoEHJQgn3uleRvmTXaJgfXbt4g==\",\n            \"dev\": true,\n            \"license\": \"MIT\",\n            \"dependencies\": {\n                \"acorn\": \"^8.11.0\"\n            },\n            \"engines\": {\n                \"node\": \"\u003e=0.4.0\"\n            }\n        },\n        \"node_modules/arg\": {\n            \"version\": \"4.1.3\",\n            \"resolved\": \"https://registry.npmjs.org/arg/-/arg-4.1.3.tgz\",\n            \"integrity\": \"sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==\",\n            \"dev\": true,\n            \"license\": \"MIT\"\n        },\n        \"node_modules/create-require\": {\n            \"version\": \"1.1.1\",\n            \"resolved\": \"https://registry.npmjs.org/create-require/-/create-require-1.1.1.tgz\",\n            \"integrity\": \"sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==\",\n            \"dev\": true,\n            \"license\": \"MIT\"\n        },\n        \"node_modules/diff\": {\n            \"version\": \"4.0.2\",\n            \"resolved\": \"https://registry.npmjs.org/diff/-/diff-4.0.2.tgz\",\n            \"integrity\": \"sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==\",\n            \"dev\": true,\n            \"license\": \"BSD-3-Clause\",\n            \"engines\": {\n                \"node\": \"\u003e=0.3.1\"\n            }\n        },\n        \"node_modules/make-error\": {\n            \"version\": \"1.3.6\",\n            \"resolved\": \"https://registry.npmjs.org/make-error/-/make-error-1.3.6.tgz\",\n            \"integrity\": \"sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==\",\n            \"dev\": true,\n            \"license\": \"ISC\"\n        },\n        \"node_modules/ts-node\": {\n            \"version\": \"10.9.2\",\n            \"resolved\": \"https://registry.npmjs.org/ts-node/-/ts-node-10.9.2.tgz\",\n            \"integrity\": \"sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==\",\n            \"dev\": true,\n            \"license\": \"MIT\",\n            \"dependencies\": {\n                \"@cspotcode/source-map-support\": \"^0.8.0\",\n                \"@tsconfig/node10\": \"^1.0.7\",\n                \"@tsconfig/node12\": \"^1.0.7\",\n                \"@tsconfig/node14\": \"^1.0.0\",\n                \"@tsconfig/node16\": \"^1.0.2\",\n                \"acorn\": \"^8.4.1\",\n                \"acorn-walk\": \"^8.1.1\",\n                \"arg\": \"^4.1.0\",\n                \"create-require\": \"^1.1.0\",\n                \"diff\": \"^4.0.1\",\n                \"make-error\": \"^1.1.1\",\n                \"v8-compile-cache-lib\": \"^3.0.1\",\n                \"yn\": \"3.1.1\"\n            },\n            \"bin\": {\n                \"ts-node\": \"dist/bin.js\",\n                \"ts-node-cwd\": \"dist/bin-cwd.js\",\n                \"ts-node-esm\": \"dist/bin-esm.js\",\n                \"ts-node-script\": \"dist/bin-script.js\",\n                \"ts-node-transpile-only\": \"dist/bin-transpile.js\",\n                \"ts-script\": \"dist/bin-script-deprecated.js\"\n            },\n            \"peerDependencies\": {\n                \"@swc/core\": \"\u003e=1.2.50\",\n                \"@swc/wasm\": \"\u003e=1.2.50\",\n                \"@types/node\": \"*\",\n                \"typescript\": \"\u003e=2.7\"\n            },\n            \"peerDependenciesMeta\": {\n                \"@swc/core\": {\n                    \"optional\": true\n                },\n                \"@swc/wasm\": {\n                    \"optional\": true\n                }\n            }\n        },\n        \"node_modules/typescript\": {\n            \"version\": \"5.7.3\",\n            \"resolved\": \"https://registry.npmjs.org/typescript/-/typescript-5.7.3.tgz\",\n            \"integrity\": \"sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==\",\n            \"dev\": true,"
+  },
+  {
+    "file": "tsparser/package-lock.json",
+    "chunk_id": "fallback_201_235:4c22e737",
+    "chunk_type": "fallback",
+    "start_line": 201,
+    "end_line": 235,
+    "code": "            \"license\": \"Apache-2.0\",\n            \"bin\": {\n                \"tsc\": \"bin/tsc\",\n                \"tsserver\": \"bin/tsserver\"\n            },\n            \"engines\": {\n                \"node\": \"\u003e=14.17\"\n            }\n        },\n        \"node_modules/undici-types\": {\n            \"version\": \"6.20.0\",\n            \"resolved\": \"https://registry.npmjs.org/undici-types/-/undici-types-6.20.0.tgz\",\n            \"integrity\": \"sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==\",\n            \"dev\": true,\n            \"license\": \"MIT\"\n        },\n        \"node_modules/v8-compile-cache-lib\": {\n            \"version\": \"3.0.1\",\n            \"resolved\": \"https://registry.npmjs.org/v8-compile-cache-lib/-/v8-compile-cache-lib-3.0.1.tgz\",\n            \"integrity\": \"sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==\",\n            \"dev\": true,\n            \"license\": \"MIT\"\n        },\n        \"node_modules/yn\": {\n            \"version\": \"3.1.1\",\n            \"resolved\": \"https://registry.npmjs.org/yn/-/yn-3.1.1.tgz\",\n            \"integrity\": \"sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q==\",\n            \"dev\": true,\n            \"license\": \"MIT\",\n            \"engines\": {\n                \"node\": \"\u003e=6\"\n            }\n        }\n    }\n}"
+  },
+  {
+    "file": "tsparser/package.json",
+    "chunk_id": "fallback_1_10:06e65805",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 10,
+    "code": "{\n    \"name\": \"tsparser\",\n    \"version\": \"1.0.0\",\n    \"private\": true,\n    \"devDependencies\": {\n        \"@types/node\": \"^22.13.5\",\n        \"ts-node\": \"^10.0.0\",\n        \"typescript\": \"^5.7.3\"\n    }\n}"
+  },
+  {
+    "file": "tsparser/tsconfig.json",
+    "chunk_id": "fallback_1_112:411af71c",
+    "chunk_type": "fallback",
+    "start_line": 1,
+    "end_line": 112,
+    "code": "{\n  \"compilerOptions\": {\n    /* Visit https://aka.ms/tsconfig to read more about this file */\n\n    /* Projects */\n    // \"incremental\": true,                              /* Save .tsbuildinfo files to allow for incremental compilation of projects. */\n    // \"composite\": true,                                /* Enable constraints that allow a TypeScript project to be used with project references. */\n    // \"tsBuildInfoFile\": \"./.tsbuildinfo\",              /* Specify the path to .tsbuildinfo incremental compilation file. */\n    // \"disableSourceOfProjectReferenceRedirect\": true,  /* Disable preferring source files instead of declaration files when referencing composite projects. */\n    // \"disableSolutionSearching\": true,                 /* Opt a project out of multi-project reference checking when editing. */\n    // \"disableReferencedProjectLoad\": true,             /* Reduce the number of projects loaded automatically by TypeScript. */\n\n    /* Language and Environment */\n    \"target\": \"es2020\",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */\n    \"lib\": [\"ES2020\"],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */\n    // \"jsx\": \"preserve\",                                /* Specify what JSX code is generated. */\n    // \"experimentalDecorators\": true,                   /* Enable experimental support for legacy experimental decorators. */\n    // \"emitDecoratorMetadata\": true,                    /* Emit design-type metadata for decorated declarations in source files. */\n    // \"jsxFactory\": \"\",                                 /* Specify the JSX factory function used when targeting React JSX emit, e.g. 'React.createElement' or 'h'. */\n    // \"jsxFragmentFactory\": \"\",                         /* Specify the JSX Fragment reference used for fragments when targeting React JSX emit e.g. 'React.Fragment' or 'Fragment'. */\n    // \"jsxImportSource\": \"\",                            /* Specify module specifier used to import the JSX factory functions when using 'jsx: react-jsx*'. */\n    // \"reactNamespace\": \"\",                             /* Specify the object invoked for 'createElement'. This only applies when targeting 'react' JSX emit. */\n    // \"noLib\": true,                                    /* Disable including any library files, including the default lib.d.ts. */\n    // \"useDefineForClassFields\": true,                  /* Emit ECMAScript-standard-compliant class fields. */\n    // \"moduleDetection\": \"auto\",                        /* Control what method is used to detect module-format JS files. */\n\n    /* Modules */\n    \"module\": \"commonjs\",                                /* Specify what module code is generated. */\n    // \"rootDir\": \"./\",                                  /* Specify the root folder within your source files. */\n    \"moduleResolution\": \"node\",                     /* Specify how TypeScript looks up a file from a given module specifier. */\n    // \"baseUrl\": \"./\",                                  /* Specify the base directory to resolve non-relative module names. */\n    // \"paths\": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */\n    // \"rootDirs\": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */\n    // \"typeRoots\": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */\n    \"types\": [\"node\"],                                      /* Specify type package names to be included without being referenced in a source file. */\n    // \"include\": [\"./*.ts\"],                           /* Specify include paths for TypeScript files. */\n    // \"allowUmdGlobalAccess\": true,                     /* Allow accessing UMD globals from modules. */\n    // \"moduleSuffixes\": [],                             /* List of file name suffixes to search when resolving a module. */\n    // \"allowImportingTsExtensions\": true,               /* Allow imports to include TypeScript file extensions. Requires '--moduleResolution bundler' and either '--noEmit' or '--emitDeclarationOnly' to be set. */\n    // \"rewriteRelativeImportExtensions\": true,          /* Rewrite '.ts', '.tsx', '.mts', and '.cts' file extensions in relative import paths to their JavaScript equivalent in output files. */\n    // \"resolvePackageJsonExports\": true,                /* Use the package.json 'exports' field when resolving package imports. */\n    // \"resolvePackageJsonImports\": true,                /* Use the package.json 'imports' field when resolving imports. */\n    // \"customConditions\": [],                           /* Conditions to set in addition to the resolver-specific defaults when resolving imports. */\n    // \"noUncheckedSideEffectImports\": true,             /* Check side effect imports. */\n    // \"resolveJsonModule\": true,                        /* Enable importing .json files. */\n    // \"allowArbitraryExtensions\": true,                 /* Enable importing files with any extension, provided a declaration file is present. */\n    // \"noResolve\": true,                                /* Disallow 'import's, 'require's or '\u003creference\u003e's from expanding the number of files TypeScript should add to a project. */\n\n    /* JavaScript Support */\n    // \"allowJs\": true,                                  /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */\n    // \"checkJs\": true,                                  /* Enable error reporting in type-checked JavaScript files. */\n    // \"maxNodeModuleJsDepth\": 1,                        /* Specify the maximum folder depth used for checking JavaScript files from 'node_modules'. Only applicable with 'allowJs'. */\n\n    /* Emit */\n    // \"declaration\": true,                              /* Generate .d.ts files from TypeScript and JavaScript files in your project. */\n    // \"declarationMap\": true,                           /* Create sourcemaps for d.ts files. */\n    // \"emitDeclarationOnly\": true,                      /* Only output d.ts files and not JavaScript files. */\n    // \"sourceMap\": true,                                /* Create source map files for emitted JavaScript files. */\n    // \"inlineSourceMap\": true,                          /* Include sourcemap files inside the emitted JavaScript. */\n    // \"noEmit\": true,                                   /* Disable emitting files from a compilation. */\n    // \"outFile\": \"./\",                                  /* Specify a file that bundles all outputs into one JavaScript file. If 'declaration' is true, also designates a file that bundles all .d.ts output. */\n    // \"outDir\": \"./\",                                   /* Specify an output folder for all emitted files. */\n    // \"removeComments\": true,                           /* Disable emitting comments. */\n    // \"importHelpers\": true,                            /* Allow importing helper functions from tslib once per project, instead of including them per-file. */\n    // \"downlevelIteration\": true,                       /* Emit more compliant, but verbose and less performant JavaScript for iteration. */\n    // \"sourceRoot\": \"\",                                 /* Specify the root path for debuggers to find the reference source code. */\n    // \"mapRoot\": \"\",                                    /* Specify the location where debugger should locate map files instead of generated locations. */\n    // \"inlineSources\": true,                            /* Include source code in the sourcemaps inside the emitted JavaScript. */\n    // \"emitBOM\": true,                                  /* Emit a UTF-8 Byte Order Mark (BOM) in the beginning of output files. */\n    // \"newLine\": \"crlf\",                                /* Set the newline character for emitting files. */\n    // \"stripInternal\": true,                            /* Disable emitting declarations that have '@internal' in their JSDoc comments. */\n    // \"noEmitHelpers\": true,                            /* Disable generating custom helper functions like '__extends' in compiled output. */\n    // \"noEmitOnError\": true,                            /* Disable emitting files if any type checking errors are reported. */\n    // \"preserveConstEnums\": true,                       /* Disable erasing 'const enum' declarations in generated code. */\n    // \"declarationDir\": \"./\",                           /* Specify the output directory for generated declaration files. */\n\n    /* Interop Constraints */\n    // \"isolatedModules\": true,                          /* Ensure that each file can be safely transpiled without relying on other imports. */\n    // \"verbatimModuleSyntax\": true,                     /* Do not transform or elide any imports or exports not marked as type-only, ensuring they are written in the output file's format based on the 'module' setting. */\n    // \"isolatedDeclarations\": true,                     /* Require sufficient annotation on exports so other tools can trivially generate declaration files. */\n    // \"allowSyntheticDefaultImports\": true,             /* Allow 'import x from y' when a module doesn't have a default export. */\n    \"esModuleInterop\": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */\n    // \"preserveSymlinks\": true,                         /* Disable resolving symlinks to their realpath. This correlates to the same flag in node. */\n    \"forceConsistentCasingInFileNames\": true,            /* Ensure that casing is correct in imports. */\n\n    /* Type Checking */\n    \"strict\": true,                                      /* Enable all strict type-checking options. */\n    // \"noImplicitAny\": true,                            /* Enable error reporting for expressions and declarations with an implied 'any' type. */\n    // \"strictNullChecks\": true,                         /* When type checking, take into account 'null' and 'undefined'. */\n    // \"strictFunctionTypes\": true,                      /* When assigning functions, check to ensure parameters and the return values are subtype-compatible. */\n    // \"strictBindCallApply\": true,                      /* Check that the arguments for 'bind', 'call', and 'apply' methods match the original function. */\n    // \"strictPropertyInitialization\": true,             /* Check for class properties that are declared but not set in the constructor. */\n    // \"strictBuiltinIteratorReturn\": true,              /* Built-in iterators are instantiated with a 'TReturn' type of 'undefined' instead of 'any'. */\n    // \"noImplicitThis\": true,                           /* Enable error reporting when 'this' is given the type 'any'. */\n    // \"useUnknownInCatchVariables\": true,               /* Default catch clause variables as 'unknown' instead of 'any'. */\n    // \"alwaysStrict\": true,                             /* Ensure 'use strict' is always emitted. */\n    // \"noUnusedLocals\": true,                           /* Enable error reporting when local variables aren't read. */\n    // \"noUnusedParameters\": true,                       /* Raise an error when a function parameter isn't read. */\n    // \"exactOptionalPropertyTypes\": true,               /* Interpret optional property types as written, rather than adding 'undefined'. */\n    // \"noImplicitReturns\": true,                        /* Enable error reporting for codepaths that do not explicitly return in a function. */\n    // \"noFallthroughCasesInSwitch\": true,               /* Enable error reporting for fallthrough cases in switch statements. */\n    // \"noUncheckedIndexedAccess\": true,                 /* Add 'undefined' to a type when accessed using an index. */\n    // \"noImplicitOverride\": true,                       /* Ensure overriding members in derived classes are marked with an override modifier. */\n    // \"noPropertyAccessFromIndexSignature\": true,       /* Enforces using indexed accessors for keys declared using an indexed type. */\n    // \"allowUnusedLabels\": true,                        /* Disable error reporting for unused labels. */\n    // \"allowUnreachableCode\": true,                     /* Disable error reporting for unreachable code. */\n\n    /* Completeness */\n    // \"skipDefaultLibCheck\": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */\n    \"skipLibCheck\": true                                 /* Skip type checking all .d.ts files. */\n  }\n}"
+  }
+]

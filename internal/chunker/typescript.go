@@ -6,6 +6,12 @@ import (
 	"os/exec"
 )
 
+// -----------------------------
+// 5. TypeScript/React Chunker
+// -----------------------------
+
+// ChunkTypeScriptFile calls an external script (e.g. "tsparser.ts")
+// that returns JSON describing chunk objects. Adjust as needed.
 func ChunkTypeScriptFile(filepath, lang string) ([]Chunk, error) {
 	// If you want to detect React, pass additional flags to the script, etc.
 	// We'll do a simple example that just calls "tsparser.ts" with the file path.
@@ -30,15 +36,3 @@ func ChunkTypeScriptFile(filepath, lang string) ([]Chunk, error) {
 
 	return chunks, nil
 }
-
-// func parseJSONChunks(data []byte) ([]Chunk, error) {
-// 	// Unmarshal to []Chunk
-// 	// This is just a placeholder for the actual parsing logic
-// 	var chunks []Chunk
-// 	err := json.Unmarshal(data, &chunks)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to parse JSON: %v", err)
-// 	}
-
-// 	return chunks, nil
-// }

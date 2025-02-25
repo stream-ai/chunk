@@ -7,43 +7,37 @@ import (
 	"os"
 	"path/filepath"
 
+	// This library does the parsing of .gitignore patterns
+	gitignore "github.com/sabhiram/go-gitignore"
+	"github.com/stream-ai/chunk/internal/chunker"
+
 	"github.com/spf13/cobra"
-	"github.com/stream-ai/chunk/chunker"
 )
 
 var (
 	outputPath    string
 	forcedLang    string
 	fallbackLines int
+	rootDir       string
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "chunk [files or globs]",
-	Short: "Chunk code files (Go, TypeScript React, or fallback) and output JSON chunks",
-	Long: `chunk is a CLI tool that parses code in Go or TypeScript (React) 
-and splits them into structured "chunks." For unknown or overridden file types, 
-it uses a line-based fallback approach. It prints the chunks as JSON by default.`,
-	Args: cobra.MinimumNArgs(1),
+	Use:   "chunk",
+	Short: "Chunk code files in the current directory (and subdirs) using .gitignore logic",
+	Long: `chunk automatically scans the specified directory (default: current dir)
+and all subdirectories, merges local .gitignore files, and chunks code.
+No file arguments are required or accepted.`,
 	RunE: runChunk,
 }
 
 func init() {
-	// Define CLI flags
-	rootCmd.Flags().StringVarP(
-		&outputPath, "output", "o", "-",
-		"Output destination ('-' for STDOUT, default)",
-	)
-	rootCmd.Flags().StringVarP(
-		&forcedLang, "lang", "l", "",
-		"Force a specific language parser (go|ts|react|fallback)",
-	)
-	rootCmd.Flags().IntVar(
-		&fallbackLines, "fallback-lines", 200,
-		"Number of lines per fallback chunk",
-	)
+	// Common flags
+	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "-", "Output destination ('-' for STDOUT)")
+	rootCmd.Flags().StringVarP(&forcedLang, "lang", "l", "", "Force a specific language parser (go|ts|react|fallback)")
+	rootCmd.Flags().IntVar(&fallbackLines, "fallback-lines", 200, "Number of lines per fallback chunk")
 
-	// Optionally integrate with Viper for config if desired
-	// viper.BindPFlag("fallback_lines", rootCmd.Flags().Lookup("fallback-lines"))
+	// Directory to walk (default: current directory)
+	rootCmd.Flags().StringVar(&rootDir, "dir", ".", "Root directory from which to chunk everything")
 }
 
 // Execute is called by main.go to run the CLI.
@@ -55,26 +49,34 @@ func Execute() {
 }
 
 func runChunk(cmd *cobra.Command, args []string) error {
+	// We'll gather all the resulting chunks in memory
 	var allChunks []chunker.Chunk
 
-	// Expand any file globs
-	for _, path := range args {
-		matches, err := filepath.Glob(path)
-		if err != nil || matches == nil {
-			matches = []string{path}
+	err := walkWithGitIgnore(rootDir, func(path string, isDir bool) error {
+		if isDir {
+			// For directories, do nothing special
+			return nil
 		}
-
-		for _, file := range matches {
-			fileChunks, err := processFile(file)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error chunking file %s: %v\n", file, err)
-				continue
-			}
-			allChunks = append(allChunks, fileChunks...)
+		// For each file: call your actual chunking logic
+		fileChunks, cErr := chunker.ProcessFile(path, forcedLang, fallbackLines)
+		if cErr != nil {
+			// If there's an error chunking, log and skip
+			log.Printf("Error chunking file %s: %v\n", path, cErr)
+			return nil
 		}
+		allChunks = append(allChunks, fileChunks...)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error walking directory: %w", err)
 	}
 
-	// Output the results
+	// Output the chunks
+	return writeChunks(allChunks)
+}
+
+// writeChunks writes chunk data as JSON
+func writeChunks(chunks []chunker.Chunk) error {
 	var out *os.File
 	if outputPath == "-" {
 		out = os.Stdout
@@ -86,37 +88,112 @@ func runChunk(cmd *cobra.Command, args []string) error {
 		defer f.Close()
 		out = f
 	}
-
 	enc := json.NewEncoder(out)
-	enc.SetIndent("", " ") // pretty print
-	if err := enc.Encode(allChunks); err != nil {
-		return err
-	}
-
-	return nil
+	enc.SetIndent("", "  ")
+	return enc.Encode(chunks)
 }
 
-func processFile(path string) ([]chunker.Chunk, error) {
-	// 0. Skip likely-binary files
-	if chunker.IsLikelyBinaryByExtension(path) {
-		log.Printf("Skipping binary file: %s\n", path)
-		return nil, nil
+// ------------------
+// .gitignore Stack Logic
+// ------------------
+
+// We'll store the compiled GitIgnore plus the directory it was loaded from
+type ignoreItem struct {
+	ig  *gitignore.GitIgnore
+	dir string
+}
+
+type ignoreStack struct {
+	items []ignoreItem
+}
+
+func (s *ignoreStack) push(item ignoreItem) {
+	s.items = append(s.items, item)
+}
+
+func (s *ignoreStack) pop() {
+	if len(s.items) > 0 {
+		s.items = s.items[:len(s.items)-1]
+	}
+}
+
+// Checks from top -> bottom. If any ignore rule matches, we skip the file/dir.
+func (s *ignoreStack) isIgnored(path string) bool {
+	// from top to bottom
+	for i := len(s.items) - 1; i >= 0; i-- {
+		baseDir := s.items[i].dir
+		ig := s.items[i].ig
+		rel, err := filepath.Rel(baseDir, path)
+		if err == nil {
+			if ig.MatchesPath(rel) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// walkWithGitIgnore recursively descends from "dir", merging .gitignore files.
+func walkWithGitIgnore(dir string, fileCallback func(path string, isDir bool) error) error {
+	var stack ignoreStack
+
+	// We'll define a nested function for DFS so we can push/pop per directory
+	var dfs func(string) error
+
+	dfs = func(currentDir string) error {
+		// Attempt to load a .gitignore in the currentDir
+		gitignorePath := filepath.Join(currentDir, ".gitignore")
+		if info, err := os.Stat(gitignorePath); err == nil && !info.IsDir() {
+			// compile it
+			ig, err := gitignore.CompileIgnoreFile(gitignorePath)
+			if err != nil {
+				return fmt.Errorf("error compiling.gitignore in %s: %w", currentDir, err)
+			}
+			// push onto stack
+			stack.push(ignoreItem{
+				ig:  ig,
+				dir: currentDir,
+			})
+		}
+
+		// read dir entries
+		entries, err := os.ReadDir(currentDir)
+		if err != nil {
+			return err
+		}
+
+		for _, e := range entries {
+			name := e.Name()
+			path := filepath.Join(currentDir, name)
+			isDir := e.IsDir()
+
+			// Check stack to see if ignored
+			if stack.isIgnored(path) {
+				continue
+			}
+
+			// Callback
+			if err := fileCallback(path, isDir); err != nil {
+				return err
+			}
+
+			// Recurse if directory
+			if isDir {
+				if err := dfs(path); err != nil {
+					return err
+				}
+			}
+		}
+
+		// If we pushed in this directory, pop it
+		if len(stack.items) > 0 {
+			top := stack.items[len(stack.items)-1]
+			if top.dir == currentDir {
+				stack.pop()
+			}
+		}
+		return nil
 	}
 
-	// 1. Determine language if user hasn't forced one
-	lang := forcedLang
-	if lang == "" {
-		lang = chunker.AutoDetectLanguage(path)
-		log.Printf("Detected language for %s: %s\n", path, lang)
-	}
-
-	// 2. Dispatch to chunkers
-	switch lang {
-	case "go":
-		return chunker.ChunkGoFile(path)
-	case "ts", "react":
-		return chunker.ChunkTypeScriptFile(path, lang)
-	default:
-		return chunker.ChunkFallback(path, fallbackLines)
-	}
+	return dfs(dir)
 }

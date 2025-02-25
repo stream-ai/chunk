@@ -5,8 +5,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"log"
 	"os"
-	"strings"
 )
 
 // ChunkGoFile parses a Go file, chunking by package, struct, func, etc.
@@ -24,28 +24,31 @@ func ChunkGoFile(filepath string) ([]Chunk, error) {
 
 	var chunks []Chunk
 
-	// 1) Add a chunk for the entire package if you want
+	// Optionally, chunk for entire package
 	if file.Name != nil {
-		pkgName := file.Name.Name
+		// pkgName := file.Name.Name
+		log.Printf("Chunking Go Package: %s\n", file.Name.Name)
+		code := string(source)
+		chunkID := makeChunkID(filepath, code)
+
 		pkgChunk := Chunk{
 			FilePath:  filepath,
-			ChunkID:   fmt.Sprintf("package_%s", pkgName),
+			ChunkID:   chunkID, // stable if package contents + file path unchanged
 			ChunkType: "package",
-			Code:      extractSource(source, 0, len(source)),
+			Code:      code,
 			StartLine: 1,
 			EndLine:   countLines(source),
 		}
 		chunks = append(chunks, pkgChunk)
 	}
 
-	// 2) Top-level declarations
+	// For top-level declarations
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.FuncDecl:
 			c := extractFuncChunk(d, filepath, fset, source)
 			chunks = append(chunks, c)
 		case *ast.GenDecl:
-			// Could handle var/const/import/type blocks
 			genChunks := extractGenDeclChunks(d, filepath, fset, source)
 			chunks = append(chunks, genChunks...)
 		}
@@ -54,67 +57,56 @@ func ChunkGoFile(filepath string) ([]Chunk, error) {
 	return chunks, nil
 }
 
-func extractFuncChunk(fn *ast.FuncDecl, filepath string, fset *token.FileSet, source []byte) Chunk {
+func extractFuncChunk(fn *ast.FuncDecl, filePath string, fset *token.FileSet, source []byte) Chunk {
 	start := fset.Position(fn.Pos())
 	end := fset.Position(fn.End())
-	chunkText := extractSource(source, start.Offset, end.Offset)
+	code := extractSource(source, start.Offset, end.Offset)
 
 	var chunkID, chunkType string
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		// method
 		recv := nodeToString(fn.Recv.List[0].Type)
-		chunkID = fmt.Sprintf("method_%s_%s", recv, fn.Name.Name)
 		chunkType = "method"
+		chunkID = fmt.Sprintf("%s:%s:%s", chunkType, recv, fn.Name.Name)
 	} else {
-		chunkID = fmt.Sprintf("func_%s", fn.Name.Name)
 		chunkType = "function"
+		chunkID = fmt.Sprintf("%s:%s", chunkType, fn.Name.Name)
 	}
 
+	// Add path+code-based hashing to chunkID if you want the ID to reflect content changes:
+	hashedID := makeChunkID(filePath, code)
+	chunkID = chunkID + ":" + hashedID[:8] // e.g. short prefix to disambiguate
+
 	return Chunk{
-		FilePath:  filepath,
+		FilePath:  filePath,
 		ChunkID:   chunkID,
 		ChunkType: chunkType,
 		StartLine: start.Line,
 		EndLine:   end.Line,
-		Code:      chunkText,
+		Code:      code,
 	}
 }
 
-func extractGenDeclChunks(gd *ast.GenDecl, filepath string, fset *token.FileSet, source []byte) []Chunk {
+func extractGenDeclChunks(gd *ast.GenDecl, filePath string, fset *token.FileSet, source []byte) []Chunk {
 	var results []Chunk
 	start := fset.Position(gd.Pos())
 	end := fset.Position(gd.End())
-	chunkText := extractSource(source, start.Offset, end.Offset)
+	code := extractSource(source, start.Offset, end.Offset)
 
-	// Could refine further for each spec
 	chunkType := gd.Tok.String() // "import", "var", "const", "type"
+	baseID := fmt.Sprintf("%s_decl_%d_%d", chunkType, start.Line, end.Line)
+
+	hashedID := makeChunkID(filePath, code)
+	finalID := baseID + ":" + hashedID[:8]
+
 	c := Chunk{
-		FilePath:  filepath,
-		ChunkID:   fmt.Sprintf("%s_decl_%d_%d", chunkType, start.Line, end.Line),
+		FilePath:  filePath,
+		ChunkID:   finalID,
 		ChunkType: chunkType,
 		StartLine: start.Line,
 		EndLine:   end.Line,
-		Code:      chunkText,
+		Code:      code,
 	}
 	results = append(results, c)
 	return results
-}
-
-func extractSource(source []byte, start, end int) string {
-	if start < 0 {
-		start = 0
-	}
-	if end > len(source) {
-		end = len(source)
-	}
-	return string(source[start:end])
-}
-
-func nodeToString(expr ast.Expr) string {
-	// E.g., "*MyStruct", "MyStruct", etc.
-	return strings.TrimSpace(fmt.Sprintf("%v", expr))
-}
-
-func countLines(data []byte) int {
-	return strings.Count(string(data), "\n") + 1
 }
