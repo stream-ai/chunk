@@ -1,6 +1,6 @@
 name: chunk
 services:
-  devcontainer:
+  chunk-devcontainer:
     container_name: devcontainer
     build:
       context: .

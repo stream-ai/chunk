@@ -3,7 +3,7 @@
     "workspaceFolder": "/workspace",
     "dockerComposeFile": "../docker-compose.yml",
     
-    "service": "devcontainer",
+    "service": "chunk-devcontainer",
     "customizations": {
       "vscode": {
         "settings": {
@@ -29,7 +29,8 @@
           "formulahendry.auto-rename-tag",
           "esbenp.prettier-vscode",
           "bradlc.vscode-tailwindcss",
-          "tabnine.tabnine-vscode"
+          "tabnine.tabnine-vscode",
+          "ms-python.python"
         ]
       }
     },

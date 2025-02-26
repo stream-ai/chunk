@@ -69,7 +69,7 @@
   # Install Python
   # ----------------------------
   RUN apt-get update \
-    && apt-get install -y python${PYTHON_VER} python${PYTHON_VER}-venv python${PYTHON_VER}-dev \
+    && apt-get install -y python${PYTHON_VER} python${PYTHON_VER}-venv python${PYTHON_VER}-dev python3-pip \
     && ln -sf /usr/bin/python${PYTHON_VER} /usr/local/bin/python \
     && rm -rf /var/lib/apt/lists/*
   
