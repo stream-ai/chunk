@@ -128,6 +128,8 @@ func outputResult(
 }
 
 // processDirectory processes all files in a directory recursively
+// Modified processDirectory function in cmd/root.go
+
 func processDirectory(
 	rootDir string,
 	minChunkSize int,
@@ -159,6 +161,28 @@ func processDirectory(
 		// Check if the file should be ignored
 		if ignoreManager.IsIgnored(path) {
 			return nil
+		}
+
+		// Check if the file is a symlink
+		if info.Mode()&os.ModeSymlink != 0 {
+			// Get the real file info from the symlink target
+			realPath, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				// If we can't resolve the symlink, just skip it
+				return nil
+			}
+
+			// Check if the symlink points to a directory
+			realInfo, err := os.Stat(realPath)
+			if err != nil {
+				// If we can't stat the real path, just skip it
+				return nil
+			}
+
+			// Skip if it's a directory
+			if realInfo.IsDir() {
+				return nil
+			}
 		}
 
 		// Skip binary files
