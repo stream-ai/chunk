@@ -71,7 +71,8 @@
   RUN apt-get update \
     && apt-get install -y python${PYTHON_VER} python${PYTHON_VER}-venv python${PYTHON_VER}-dev python3-pip \
     && ln -sf /usr/bin/python${PYTHON_VER} /usr/local/bin/python \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m pip install --upgrade pip
   
   # Add the 'vscode' user to the 'docker' group
   RUN groupadd docker \
@@ -114,6 +115,19 @@
   ENV GOPATH=/go
   ENV PATH=/usr/local/go/bin:/go/bin:$PATH
   
+# ------------------------------------------------------
+# Setup OpenVINO
+# ------------------------------------------------------
+RUN apt update && \
+  apt install libgl1 \
+    libgl1-mesa-glx \ 
+    libglib2.0-0 -y
+
+RUN pip install --upgrade pip && \
+  pip install openvino && \
+  pip install opencv-python && \
+  pip install jupyter lab
+
   # ------------------------------------------------------
   # Setup Workspace
   # ------------------------------------------------------
